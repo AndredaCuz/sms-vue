@@ -35,16 +35,16 @@
         </div>
         <div class="card-body">
           <div style="display: grid; gap: 1rem;">
-            <router-link to="/enviar-sms" class="btn btn-accent btn-lg w-100">
+            <router-link to="/enviarsms" class="btn btn-accent btn-lg w-100">
               <i class="fas fa-paper-plane"></i> Enviar SMS
             </router-link>
-            <router-link to="/contatos" class="btn btn-primary w-100">
+            <router-link to="/meucontatos" class="btn btn-primary w-100">
               <i class="fas fa-user-plus"></i> Meus Contactos
             </router-link>
             <router-link to="/contatos/importar" class="btn btn-outline w-100">
               <i class="fas fa-file-import"></i> Importar Contatos
             </router-link>
-            <router-link to="/creditos" class="btn btn-success w-100">
+            <router-link to="/credito" class="btn btn-success w-100">
               <i class="fas fa-shopping-cart"></i> Comprar Créditos
             </router-link>
           </div>

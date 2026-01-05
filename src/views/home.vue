@@ -14,10 +14,67 @@
             <span class="gradient-text">simples e eficiente</span>
           </h1>
           
+          
           <p class="hero-description">
             Conecte-se com seus clientes instantaneamente. Plataforma completa para gestão 
             e envio de SMS com alta taxa de entrega e preços acessíveis.
           </p>
+
+          <div class="hero-illustration">
+            <div class="phone-mockup">
+              <div class="phone-screen">
+                <!-- SMS Bubbles com animação -->
+                <div class="sms-bubble sms-1">
+                  <div class="bubble-header">
+                    <i class="fas fa-sms"></i>
+                    <span>DEV SMS</span>
+                  </div>
+                  <p>Olá! Sua promoção especial aguarda você 🎉</p>
+                  <div class="bubble-time">14:23</div>
+                  <div class="bubble-status">
+                    <i class="fas fa-check-double"></i>
+                  </div>
+                </div>
+                <div class="sms-bubble sms-2">
+                  <div class="bubble-header">
+                    <i class="fas fa-sms"></i>
+                    <span>DEV SMS</span>
+                  </div>
+                  <p>Seu código de verificação: 123456</p>
+                  <div class="bubble-time">14:25</div>
+                  <div class="bubble-status">
+                    <i class="fas fa-check-double"></i>
+                  </div>
+                </div>
+                <div class="sms-bubble sms-3">
+                  <div class="bubble-header">
+                    <i class="fas fa-sms"></i>
+                    <span>DEV SMS</span>
+                  </div>
+                  <p>Obrigado por escolher nossos serviços! ✨</p>
+                  <div class="bubble-time">14:27</div>
+                  <div class="bubble-status sending">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                </div>
+                
+                <!-- Typing indicator -->
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+              <div class="phone-notch"></div>
+              
+              <!-- Efeito de ondas de sinal -->
+              <div class="signal-waves">
+                <div class="wave wave-1"></div>
+                <div class="wave wave-2"></div>
+                <div class="wave wave-3"></div>
+              </div>
+            </div>
+          </div>
           
           <div class="hero-actions">
             <router-link to="/register" class="btn btn-primary btn-lg">

@@ -5,9 +5,7 @@
     <!-- Page Header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Contatos</h1>
-        <p class="page-subtitle">Gerencie todos os seus contatos e funcionários</p>
-      </div>
+              </div>
       <div class="header-actions">
         <button class="btn btn-outline" @click="importExcel">
           <i class="fas fa-file-import"></i>

@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+  <div class="login-container login-page">
     <!-- Left Side -->
     <div class="login-left">
       <div class="logo">💬</div>
@@ -138,8 +138,19 @@ function handleLogin() {
 </script>
 
 <style >
+
+  .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;     /* Centraliza vertical */
+    justify-content: center; /* Centraliza horizontal */
+    background: linear-gradient(135deg, #070708ff, #eedf09ff);
+    padding: 20px;
+}
+
 /* Copiei seu CSS original, apenas retirei o corpo e html, já que o Vue monta dentro do root */
 .login-container {
+
     display: flex;
     max-width: 1000px;
     width: 100%;

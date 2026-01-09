@@ -12,6 +12,7 @@ import Enviarsms from '../views/Enviarsms.vue'
 import Admpainel from '../views/adm/Admpainel.vue'
 import Credito from '../views/credito.vue'
 import Gerir from '../views/adm/Gerir.vue'
+import Historicosms from '../views/Historicosms.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -23,7 +24,8 @@ const routes = [
 {path:'/enviarsms', name: 'Enviarsms', component: Enviarsms},
 {path:'/admpainel', name: 'Admpainel', component: Admpainel},
 {path: '/credito', name: 'Credito', component: Credito},
-{path: '/gerir', name: 'Gerir', component: Gerir}
+{path: '/gerir', name: 'Gerir', component: Gerir},
+{path: '/historicosms', name:Historicosms, component:Historicosms}
 ]
 const router = createRouter({
   history: createWebHistory(),

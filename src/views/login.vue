@@ -21,8 +21,28 @@
         <p>Entre com suas credenciais para acessar o sistema</p>
       </div>
 
+      <!-- User Type Toggle -->
+      <div class="user-type-toggle">
+        <button 
+          type="button"
+          :class="['toggle-btn', { active: userType === 'company' }]"
+          @click="userType = 'company'"
+        >
+          🏢 Empresa
+        </button>
+        <button 
+          type="button"
+          :class="['toggle-btn', { active: userType === 'admin' }]"
+          @click="userType = 'admin'"
+        >
+          👤 Administrador
+        </button>
+      </div>
+
       <!-- Status Message -->
-      <div v-if="statusMessage" class="status-message active">{{ statusMessage }}</div>
+      <div v-if="statusMessage" :class="['status-message', statusType]">
+        {{ statusMessage }}
+      </div>
 
       <form @submit.prevent="handleLogin">
         <!-- Email -->
@@ -36,6 +56,7 @@
               v-model="form.email"
               class="form-control"
               placeholder="seu@email.com"
+              required
               autofocus
               autocomplete="username"
             />
@@ -54,6 +75,7 @@
               v-model="form.password"
               class="form-control"
               placeholder="Digite sua senha"
+              required
               autocomplete="current-password"
             />
           </div>
@@ -66,311 +88,556 @@
             <input type="checkbox" id="remember_me" v-model="form.remember" />
             <label for="remember_me">Lembrar-me</label>
           </div>
-          <router-link v-if="hasForgotPassword" to="/forgot-password" class="forgot-password">
+          <router-link to="/forgot-password" class="forgot-password">
             Esqueceu a senha?
           </router-link>
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="btn-login">Entrar no Sistema</button>
+        <button type="submit" class="btn-login" :disabled="isLoading">
+          <span v-if="!isLoading">Entrar no Sistema</span>
+          <span v-else>
+            <i class="fas fa-spinner fa-spin"></i> Entrando...
+          </span>
+        </button>
+
+        <!-- Register Link -->
+        <div class="register-link">
+          Não tem uma conta? <router-link to="/register">Criar conta agora</router-link>
+        </div>
       </form>
     </div>
   </div>
 </template>
 
-<script setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+<script>
+import axios from 'axios';
 
-// Simula a mensagem de status da sessão (antes era Blade @session)
-const statusMessage = ref('')
+export default {
+  name: 'Login',
+  data() {
+    return {
+      userType: 'company', // 'company' ou 'admin'
+      form: {
+        email: '',
+        password: '',
+        remember: false
+      },
+      errors: {
+        email: '',
+        password: ''
+      },
+      statusMessage: '',
+      statusType: '',
+      isLoading: false
+    };
+  },
+  methods: {
+    validateForm() {
+      this.errors = {
+        email: '',
+        password: ''
+      };
 
-// Para controlar se a rota de "esqueceu a senha" existe
-const hasForgotPassword = true
+      let isValid = true;
 
-// Dados do formulário
-const form = reactive({
-  email: '',
-  password: '',
-  remember: false
-})
+      // Validação de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!this.form.email) {
+        this.errors.email = 'Por favor, insira seu email';
+        isValid = false;
+      } else if (!emailRegex.test(this.form.email)) {
+        this.errors.email = 'Por favor, insira um email válido';
+        isValid = false;
+      }
 
-// Erros
-const errors = reactive({
-  email: '',
-  password: ''
-})
+      // Validação de senha
+      if (!this.form.password) {
+        this.errors.password = 'Por favor, insira sua senha';
+        isValid = false;
+      } else if (this.form.password.length < 6) {
+        this.errors.password = 'A senha deve ter no mínimo 6 caracteres';
+        isValid = false;
+      }
 
-const router = useRouter()
+      return isValid;
+    },
 
-// Função de login
-function handleLogin() {
-  // Reset erros
-  errors.email = ''
-  errors.password = ''
+    async handleLogin() {
+      if (!this.validateForm()) {
+        return;
+      }
 
-  let isValid = true
+      this.isLoading = true;
+      this.statusMessage = '';
+      this.statusType = '';
 
-  // Validação simples
-  if (!form.email || !form.email.includes('@')) {
-    errors.email = 'Por favor, insira um email válido'
-    isValid = false
+      // Define o endpoint baseado no tipo de usuário
+      const endpoint = this.userType === 'company' 
+        ? 'https://api.devsms.online/api/v1/auth/login'
+        : 'https://api.devsms.online/api/v1/auth/admin/login';
+
+      try {
+        const response = await axios.post(endpoint, {
+          email: this.form.email,
+          password: this.form.password
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log('✅ Resposta completa da API:', response.data);
+
+        // Buscar o token em diferentes estruturas possíveis
+        const token = response.data.token || 
+                     response.data.access_token || 
+                     response.data.data?.token ||
+                     response.data.data?.access_token;
+        
+        if (!token) {
+          console.error('❌ Token não encontrado na resposta:', response.data);
+          this.statusMessage = 'Erro: Token de autenticação não recebido';
+          this.statusType = 'error';
+          this.isLoading = false;
+          return;
+        }
+
+        console.log('✅ Token recebido:', token.substring(0, 20) + '...');
+
+        // Armazenar token
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user_type', this.userType);
+        console.log('✅ Token armazenado no localStorage');
+        
+        // Armazenar dados do usuário se disponível
+        const userData = response.data.user || 
+                        response.data.data?.user || 
+                        response.data;
+        
+        if (userData) {
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          console.log('✅ Dados do usuário armazenados:', userData);
+        }
+
+        // Armazenar remember me
+        if (this.form.remember) {
+          localStorage.setItem('remember_email', this.form.email);
+        } else {
+          localStorage.removeItem('remember_email');
+        }
+
+        this.statusMessage = 'Login realizado com sucesso! Redirecionando...';
+        this.statusType = 'success';
+
+        console.log('✅ Preparando redirecionamento...');
+
+        // Aguardar um momento para garantir que tudo foi salvo
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Redirecionar usando window.location para garantir reload completo
+        const redirectUrl = this.userType === 'admin' ? '/admin/dashboard' : '/dashboard';
+        
+        console.log('✅ Redirecionando para:', redirectUrl);
+        window.location.href = redirectUrl;
+
+      } catch (error) {
+        console.error('❌ Erro no login:', error);
+
+        if (error.response) {
+          console.error('❌ Resposta de erro:', error.response.data);
+          
+          // Erro da API
+          if (error.response.status === 401) {
+            this.statusMessage = 'Email ou senha incorretos. Tente novamente.';
+            this.statusType = 'error';
+          } else if (error.response.status === 422) {
+            // Erros de validação
+            if (error.response.data.errors) {
+              this.errors = {
+                email: error.response.data.errors.email?.[0] || '',
+                password: error.response.data.errors.password?.[0] || ''
+              };
+            }
+            this.statusMessage = error.response.data.message || 'Dados inválidos. Verifique os campos.';
+            this.statusType = 'error';
+          } else if (error.response.status === 403) {
+            this.statusMessage = 'Acesso negado. Verifique suas permissões.';
+            this.statusType = 'error';
+          } else {
+            this.statusMessage = error.response.data.message || 'Erro ao fazer login. Tente novamente.';
+            this.statusType = 'error';
+          }
+        } else if (error.request) {
+          console.error('❌ Erro de rede:', error.request);
+          this.statusMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          this.statusType = 'error';
+        } else {
+          console.error('❌ Erro desconhecido:', error.message);
+          this.statusMessage = 'Erro ao processar requisição. Tente novamente.';
+          this.statusType = 'error';
+        }
+        
+        this.isLoading = false;
+      }
+    }
+  },
+  mounted() {
+    // Limpar qualquer token antigo ao carregar a página de login
+    if (this.$route.query.logout === 'true') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_type');
+      localStorage.removeItem('user_data');
+      this.statusMessage = 'Você foi desconectado com sucesso.';
+      this.statusType = 'success';
+    }
+    
+    // Recuperar email se remember me estava ativo
+    const rememberedEmail = localStorage.getItem('remember_email');
+    if (rememberedEmail) {
+      this.form.email = rememberedEmail;
+      this.form.remember = true;
+    }
   }
-
-  if (!form.password || form.password.length < 6) {
-    errors.password = 'A senha deve ter no mínimo 6 caracteres'
-    isValid = false
-  }
-
-  if (!isValid) return
-
-  // Aqui você pode chamar API Laravel via axios/fetch
-  // Exemplo simulando login:
-  console.log('Login enviado', { ...form })
-
-  // Simulando login bem-sucedido:
-  statusMessage.value = 'Login realizado com sucesso!'
-  setTimeout(() => {
-    statusMessage.value = ''
-    router.push('/dashboard')
-  }, 1500)
-}
+};
 </script>
 
-<style >
-
-  .login-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;     /* Centraliza vertical */
-    justify-content: center; /* Centraliza horizontal */
-    background: linear-gradient(135deg, #070708ff, #eedf09ff);
-    padding: 20px;
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #070708ff, #eedf09ff);
+  padding: 20px;
 }
 
-/* Copiei seu CSS original, apenas retirei o corpo e html, já que o Vue monta dentro do root */
 .login-container {
+  display: flex;
+  max-width: 1000px;
+  width: 100%;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
 
-    display: flex;
-    max-width: 1000px;
-    width: 100%;
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
 .login-left {
-    flex: 1;
-    background: linear-gradient(135deg, #070708ff 0%, #eedf09ff 100%);
-    padding: 60px 40px;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
+  flex: 1;
+  background: linear-gradient(135deg, #070708ff 0%, #eedf09ff 100%);
+  padding: 60px 40px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
+
 .login-left::before {
-    content: '';
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    top: -50px;
-    right: -50px;
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  top: -50px;
+  right: -50px;
 }
+
 .login-left::after {
-    content: '';
-    position: absolute;
-    width: 150px;
-    height: 150px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    bottom: -30px;
-    left: -30px;
+  content: '';
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  bottom: -30px;
+  left: -30px;
 }
+
 .logo {
-    font-size: 48px;
-    margin-bottom: 20px;
-    position: relative;
-    z-index: 1;
+  font-size: 48px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
+
 .login-left h1 {
-    font-size: 32px;
-    margin-bottom: 15px;
-    position: relative;
-    z-index: 1;
+  font-size: 32px;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 1;
 }
+
 .login-left p {
-    font-size: 16px;
-    line-height: 1.6;
-    opacity: 0.9;
-    position: relative;
-    z-index: 1;
+  font-size: 16px;
+  line-height: 1.6;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
 }
+
 .features {
-    margin-top: 40px;
-    position: relative;
-    z-index: 1;
+  margin-top: 40px;
+  position: relative;
+  z-index: 1;
 }
+
 .feature-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
 }
+
 .feature-item::before {
-    content: '✓';
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    text-align: center;
-    line-height: 24px;
-    margin-right: 12px;
-    font-weight: bold;
+  content: '✓';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 24px;
+  margin-right: 12px;
+  font-weight: bold;
 }
+
 .login-right {
-    flex: 1;
-    padding: 60px 50px;
+  flex: 1;
+  padding: 60px 50px;
 }
+
 .login-header {
-    text-align: center;
-    margin-bottom: 40px;
+  text-align: center;
+  margin-bottom: 30px;
 }
+
 .login-header h2 {
-    color: #333;
-    font-size: 28px;
-    margin-bottom: 10px;
+  color: #333;
+  font-size: 28px;
+  margin-bottom: 10px;
 }
+
 .login-header p {
-    color: #666;
-    font-size: 14px;
+  color: #666;
+  font-size: 14px;
 }
-.form-group {
-    margin-bottom: 25px;
+
+.user-type-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  background: #f5f5f5;
+  padding: 5px;
+  border-radius: 12px;
 }
-.form-group label {
-    display: block;
-    color: #333;
-    font-weight: 500;
-    margin-bottom: 8px;
-    font-size: 14px;
+
+.toggle-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
-.input-wrapper {
-    position: relative;
+
+.toggle-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
 }
-.input-icon {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #667eea;
-    font-size: 18px;
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #ff0000ff 0%, #ffd900ff 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
-.form-control {
-    width: 100%;
-    padding: 14px 15px 14px 45px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 15px;
-    transition: all 0.3s ease;
-    outline: none;
-}
-.form-control:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-.error-message {
-    color: #e74c3c;
-    font-size: 13px;
-    margin-top: 5px;
-    display: none;
-}
-.error-message.active {
-    display: block;
-}
-.remember-forgot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-}
-.remember-me {
-    display: flex;
-    align-items: center;
-}
-.remember-me input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    cursor: pointer;
-    accent-color: #667eea;
-}
-.remember-me label {
-    color: #666;
-    font-size: 14px;
-    cursor: pointer;
-    margin: 0;
-}
-.forgot-password {
-    color: #667eea;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-.forgot-password:hover {
-    color: #764ba2;
-}
-.btn-login {
-    width: 100%;
-    padding: 15px;
-    background: linear-gradient(135deg, #ff0000ff 0%, #ffd900ff 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-.btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-.btn-login:active {
-    transform: translateY(0);
-}
+
 .status-message {
-    padding: 12px;
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 500;
 }
-.status-message.active {
-    display: block;
+
+.status-message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
 }
+
+.status-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #667eea;
+  font-size: 18px;
+  z-index: 1;
+}
+
+.form-control {
+  width: 100%;
+  padding: 14px 15px 14px 45px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 13px;
+  margin-top: 5px;
+  display: none;
+}
+
+.error-message.active {
+  display: block;
+}
+
+.remember-forgot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.remember-me label {
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.forgot-password {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #764ba2;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #ff0000ff 0%, #ffd900ff 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-login:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-login:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-login:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.register-link a {
+  color: #ff1e00ff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.register-link a:hover {
+  color: #764ba2;
+}
+
 @media (max-width: 768px) {
-    .login-container {
-        flex-direction: column;
-    }
-    .login-left {
-        padding: 40px 30px;
-    }
-    .login-right {
-        padding: 40px 30px;
-    }
-    .login-left h1 {
-        font-size: 24px;
-    }
-    .logo {
-        font-size: 36px;
-    }
+  .login-container {
+    flex-direction: column;
+  }
+
+  .login-left {
+    padding: 40px 30px;
+  }
+
+  .login-right {
+    padding: 40px 30px;
+  }
+
+  .login-left h1 {
+    font-size: 24px;
+  }
+
+  .logo {
+    font-size: 36px;
+  }
+
+  .user-type-toggle {
+    flex-direction: column;
+  }
 }
 </style>

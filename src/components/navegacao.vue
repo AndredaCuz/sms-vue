@@ -23,12 +23,17 @@
         />
       </div>
 
+      <!-- Loading State -->
+      <div v-if="isLoading" class="navbar-loading">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+
       <!-- Actions -->
-      <div class="navbar-actions">
+      <div class="navbar-actions" v-else>
         <!-- Créditos -->
         <div class="credits-display">
           <i class="fas fa-wallet"></i>
-          <span class="credits-amount">{{ credits }}</span>
+          <span class="credits-amount">{{ formattedCredits }}</span>
           <span class="credits-label">créditos</span>
         </div>
 
@@ -78,18 +83,19 @@
         <!-- Perfil do Usuário -->
         <div class="navbar-item dropdown" ref="profileDropdown">
           <button class="profile-button" @click="toggleProfile">
-            <img :src="user.avatar" :alt="user.name" class="profile-avatar" />
-            <span class="profile-name">{{ user.name }}</span>
+            <img :src="userAvatar" :alt="userName" class="profile-avatar" />
+            <span class="profile-name">{{ userName }}</span>
             <i class="fas fa-chevron-down"></i>
           </button>
 
           <!-- Dropdown Perfil -->
           <div class="dropdown-menu dropdown-menu-right" v-show="showProfile">
             <div class="profile-info">
-              <img :src="user.avatar" :alt="user.name" class="profile-avatar-large" />
+              <img :src="userAvatar" :alt="userName" class="profile-avatar-large" />
               <div>
-                <div class="profile-name-large">{{ user.name }}</div>
-                <div class="profile-email">{{ user.email }}</div>
+                <div class="profile-name-large">{{ userName }}</div>
+                <div class="profile-email">{{ userEmail }}</div>
+                <div class="profile-role" v-if="userRole">{{ userRole }}</div>
               </div>
             </div>
             <div class="dropdown-divider"></div>
@@ -110,9 +116,9 @@
               <i class="fas fa-question-circle"></i>
               Ajuda & Suporte
             </router-link>
-            <button class="dropdown-item" @click="handleLogout">
-              <i class="fas fa-sign-out-alt"></i>
-              Sair
+            <button class="dropdown-item" @click="handleLogout" :disabled="isLoggingOut">
+              <i :class="isLoggingOut ? 'fas fa-spinner fa-spin' : 'fas fa-sign-out-alt'"></i>
+              {{ isLoggingOut ? 'Saindo...' : 'Sair' }}
             </button>
           </div>
         </div>
@@ -121,129 +127,268 @@
   </nav>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+<script>
+import axios from 'axios';
 
-// Props
-const props = defineProps({
-  showSearch: {
-    type: Boolean,
-    default: true
+export default {
+  name: 'Navbar',
+  props: {
+    showSearch: {
+      type: Boolean,
+      default: true
+    },
+    showMenuToggle: {
+      type: Boolean,
+      default: true
+    }
   },
-  showMenuToggle: {
-    type: Boolean,
-    default: true
-  }
-})
-
-// Emits
-const emit = defineEmits(['toggle-sidebar', 'search'])
-
-// Estado
-const showNotifications = ref(false)
-const showProfile = ref(false)
-const searchQuery = ref('')
-
-// Dados do usuário (substitua com dados reais da API)
-const user = ref({
-  name: 'João Silva',
-  email: 'joao.silva@empresa.com',
-  avatar: 'https://ui-avatars.com/api/?name=Joao+Silva&background=F59E0B&color=fff&size=128'
-})
-
-const credits = ref('5,420')
-const unreadNotifications = ref(3)
-
-const notifications = ref([
-  {
-    id: 1,
-    title: 'SMS Enviado',
-    message: '150 mensagens enviadas para o grupo "Vendedores"',
-    time: 'Há 2 horas',
-    icon: 'fas fa-paper-plane',
-    iconColor: '#10B981',
-    bgColor: 'rgba(16, 185, 129, 0.1)',
-    read: false
+  emits: ['toggle-sidebar', 'search'],
+  data() {
+    return {
+      showNotifications: false,
+      showProfile: false,
+      searchQuery: '',
+      isLoading: true,
+      isLoggingOut: false,
+      
+      // Dados do usuário
+      user: null,
+      credits: 0,
+      unreadNotifications: 3,
+      
+      // Notificações (temporário - pode vir da API depois)
+      notifications: [
+        {
+          id: 1,
+          title: 'SMS Enviado',
+          message: '150 mensagens enviadas para o grupo "Vendedores"',
+          time: 'Há 2 horas',
+          icon: 'fas fa-paper-plane',
+          iconColor: '#10B981',
+          bgColor: 'rgba(16, 185, 129, 0.1)',
+          read: false
+        },
+        {
+          id: 2,
+          title: 'Novos Contatos',
+          message: '25 contatos importados via Excel',
+          time: 'Há 5 horas',
+          icon: 'fas fa-user-plus',
+          iconColor: '#3B82F6',
+          bgColor: 'rgba(59, 130, 246, 0.1)',
+          read: false
+        },
+        {
+          id: 3,
+          title: 'Créditos Baixos',
+          message: 'Você tem apenas 420 créditos restantes',
+          time: 'Há 1 dia',
+          icon: 'fas fa-exclamation-triangle',
+          iconColor: '#F59E0B',
+          bgColor: 'rgba(245, 158, 11, 0.1)',
+          read: false
+        }
+      ]
+    };
   },
-  {
-    id: 2,
-    title: 'Novos Contatos',
-    message: '25 contatos importados via Excel',
-    time: 'Há 5 horas',
-    icon: 'fas fa-user-plus',
-    iconColor: '#3B82F6',
-    bgColor: 'rgba(59, 130, 246, 0.1)',
-    read: false
+  computed: {
+    userName() {
+      if (!this.user) return 'Usuário';
+      return this.user.name || this.user.admin_name || this.user.company_name || 'Usuário';
+    },
+    userEmail() {
+      if (!this.user) return '';
+      return this.user.email || this.user.admin_email || this.user.company_email || '';
+    },
+    userAvatar() {
+      if (!this.user) {
+        return 'https://ui-avatars.com/api/?name=User&background=F59E0B&color=fff&size=128';
+      }
+      
+      // Se tiver avatar customizado na API
+      if (this.user.avatar) {
+        return this.user.avatar;
+      }
+      
+      // Gerar avatar com iniciais
+      const name = this.userName.replace(/[^a-zA-Z\s]/g, '');
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F59E0B&color=fff&size=128`;
+    },
+    userRole() {
+      if (!this.user) return '';
+      
+      const userType = localStorage.getItem('user_type');
+      if (userType === 'admin') {
+        return 'Administrador';
+      } else if (userType === 'company') {
+        return 'Empresa';
+      }
+      
+      return this.user.role || '';
+    },
+    formattedCredits() {
+      if (!this.credits && this.credits !== 0) return '0';
+      return this.credits.toLocaleString('pt-AO');
+    }
   },
-  {
-    id: 3,
-    title: 'Créditos Baixos',
-    message: 'Você tem apenas 420 créditos restantes',
-    time: 'Há 1 dia',
-    icon: 'fas fa-exclamation-triangle',
-    iconColor: '#F59E0B',
-    bgColor: 'rgba(245, 158, 11, 0.1)',
-    read: false
+  methods: {
+    async fetchUserData() {
+      this.isLoading = true;
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        console.error('Token não encontrado');
+        this.isLoading = false;
+        
+        // Não redirecionar imediatamente, dar tempo para o login completar
+        setTimeout(() => {
+          const tokenCheck = localStorage.getItem('auth_token');
+          if (!tokenCheck && this.$route.path !== '/login' && this.$route.path !== '/register') {
+            this.$router.push('/login');
+          }
+        }, 1000);
+        return;
+      }
+
+      try {
+        const response = await axios.get('https://api.devsms.online/api/v1/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        this.user = response.data.user || response.data.data || response.data;
+        
+        // Extrair créditos se disponível
+        this.credits = this.user.credits || this.user.balance || this.user.sms_credits || 0;
+        
+        console.log('Dados do usuário carregados:', this.user);
+        
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+        
+        if (error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            // Token inválido ou expirado
+            console.log('Token inválido, limpando sessão');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_type');
+            localStorage.removeItem('user_data');
+            
+            // Redirecionar apenas se não estiver na tela de login
+            if (this.$route.path !== '/login' && this.$route.path !== '/register') {
+              setTimeout(() => {
+                this.$router.push('/login');
+              }, 500);
+            }
+          } else {
+            console.error('Erro da API:', error.response.data);
+            
+            // Tentar usar dados do localStorage como fallback
+            const userData = localStorage.getItem('user_data');
+            if (userData) {
+              try {
+                this.user = JSON.parse(userData);
+                console.log('Usando dados do cache:', this.user);
+              } catch (e) {
+                console.error('Erro ao parsear dados do cache');
+              }
+            }
+          }
+        }
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
+    async handleLogout() {
+      if (this.isLoggingOut) return;
+      
+      // Confirmar logout
+      if (!confirm('Tem certeza que deseja sair?')) {
+        return;
+      }
+      
+      this.isLoggingOut = true;
+      const token = localStorage.getItem('auth_token');
+
+      try {
+        // Chamar API de logout (corrigindo o endpoint - logout não logut)
+        await axios.post('https://api.devsms.online/api/v1/auth/logout', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log('Logout realizado com sucesso');
+        
+      } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+        // Mesmo com erro, vamos limpar os dados locais
+      } finally {
+        // Limpar dados locais
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_type');
+        localStorage.removeItem('user_data');
+        
+        // Redirecionar para login
+        this.$router.push('/login');
+        
+        this.isLoggingOut = false;
+      }
+    },
+    
+    toggleSidebar() {
+      this.$emit('toggle-sidebar');
+    },
+    
+    toggleNotifications() {
+      this.showNotifications = !this.showNotifications;
+      this.showProfile = false;
+    },
+    
+    toggleProfile() {
+      this.showProfile = !this.showProfile;
+      this.showNotifications = false;
+    },
+    
+    handleSearch() {
+      this.$emit('search', this.searchQuery);
+    },
+    
+    markAllAsRead() {
+      this.notifications.forEach(n => n.read = true);
+      this.unreadNotifications = 0;
+    },
+    
+    handleNotificationClick(notification) {
+      notification.read = true;
+      this.unreadNotifications = this.notifications.filter(n => !n.read).length;
+      // Adicione navegação ou ação específica aqui
+    },
+    
+    handleClickOutside(event) {
+      if (this.$refs.notificationDropdown && !this.$refs.notificationDropdown.contains(event.target)) {
+        this.showNotifications = false;
+      }
+      if (this.$refs.profileDropdown && !this.$refs.profileDropdown.contains(event.target)) {
+        this.showProfile = false;
+      }
+    }
+  },
+  mounted() {
+    // Buscar dados do usuário ao montar o componente
+    this.fetchUserData();
+    
+    // Adicionar listener para fechar dropdowns ao clicar fora
+    document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside);
   }
-])
-
-// Refs para os dropdowns
-const notificationDropdown = ref(null)
-const profileDropdown = ref(null)
-
-// Métodos
-const toggleSidebar = () => {
-  emit('toggle-sidebar')
-}
-
-const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value
-  showProfile.value = false
-}
-
-const toggleProfile = () => {
-  showProfile.value = !showProfile.value
-  showNotifications.value = false
-}
-
-const handleSearch = () => {
-  emit('search', searchQuery.value)
-}
-
-const markAllAsRead = () => {
-  notifications.value.forEach(n => n.read = true)
-  unreadNotifications.value = 0
-}
-
-const handleNotificationClick = (notification) => {
-  notification.read = true
-  unreadNotifications.value = notifications.value.filter(n => !n.read).length
-  // Adicione navegação ou ação específica aqui
-}
-
-const handleLogout = () => {
-  // Implemente a lógica de logout
-  console.log('Logout')
-  // Exemplo: router.push('/login')
-}
-
-// Fechar dropdowns ao clicar fora
-const handleClickOutside = (event) => {
-  if (notificationDropdown.value && !notificationDropdown.value.contains(event.target)) {
-    showNotifications.value = false
-  }
-  if (profileDropdown.value && !profileDropdown.value.contains(event.target)) {
-    showProfile.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+};
 </script>
 
 <style scoped>
@@ -339,6 +484,14 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
 }
 
+.navbar-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9CA3AF;
+  font-size: 1.25rem;
+}
+
 .navbar-actions {
   display: flex;
   align-items: center;
@@ -423,6 +576,11 @@ onUnmounted(() => {
 
 .profile-button:hover {
   background: #F3F4F6;
+}
+
+.profile-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .profile-avatar {
@@ -576,6 +734,14 @@ onUnmounted(() => {
 .profile-email {
   color: #6B7280;
   font-size: 0.875rem;
+  margin-bottom: 0.125rem;
+}
+
+.profile-role {
+  color: #F59E0B;
+  font-size: 0.813rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
 }
 
 .dropdown-divider {
@@ -600,9 +766,14 @@ onUnmounted(() => {
   text-align: left;
 }
 
-.dropdown-item:hover {
+.dropdown-item:hover:not(:disabled) {
   background: #F3F4F6;
   color: #F59E0B;
+}
+
+.dropdown-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .dropdown-item i {

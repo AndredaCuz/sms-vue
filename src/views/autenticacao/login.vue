@@ -175,7 +175,7 @@ export default {
       // Define o endpoint baseado no tipo de usuário
       const endpoint = this.userType === 'company' 
         ? 'https://api.devsms.online/api/v1/auth/login'
-        : 'https://api.devsms.online/api/v1/auth/admin/login';
+        : 'https://api.devsms.online/api/v1/auth/login';
 
       try {
         const response = await axios.post(endpoint, {
@@ -237,7 +237,7 @@ export default {
         await new Promise(resolve => setTimeout(resolve, 800));
 
         // Redirecionar usando window.location para garantir reload completo
-        const redirectUrl = this.userType === 'admin' ? '/admin/dashboard' : '/dashboard';
+        const redirectUrl = this.userType === 'admin' ? '/dashboard' : '/dashboard';
         
         console.log('✅ Redirecionando para:', redirectUrl);
         window.location.href = redirectUrl;

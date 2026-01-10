@@ -40,11 +40,17 @@
               <router-link to="/meucontatos" class="btn btn-primary w-100">
                 <i class="fas fa-user-plus"></i> Meus Contactos
               </router-link>
-              <router-link to="/contatos/importar" class="btn btn-outline w-100">
-                <i class="fas fa-file-import"></i> Importar Contatos
+              <router-link to="/verplanos" class="btn btn-outline w-100">
+                <i class="fas fa-list-alt me-2"></i> Ver Planos
               </router-link>
               <router-link to="/credito" class="btn btn-success w-100">
-                <i class="fas fa-shopping-cart"></i> Comprar Créditos
+                <i class="fas fa-file-signature me-2"></i> Assinuturas
+              </router-link>
+              <router-link to="/categorias" class="btn btn-outline w-100">
+                <i class="fas fa-file-signature me-2"></i> Categorias
+              </router-link>
+              <router-link to="/lista_template" class="btn btn-outline w-100">
+                <i class="fas fa-file-signature me-2"></i> Templates 
               </router-link>
             </div>
           </div>
@@ -184,7 +190,7 @@
                 </div>
               </div>
 
-              <router-link to="/campanhas" class="btn btn-primary w-100">
+              <router-link to="/lista_campanhas" class="btn btn-primary w-100">
                 <i class="fas fa-bullhorn"></i> Ver Todas as Campanhas
               </router-link>
             </div>

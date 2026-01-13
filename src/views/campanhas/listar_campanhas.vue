@@ -229,7 +229,7 @@
         <div class="campaign-actions">
           <!-- Enviar Campanha (apenas para pending) -->
           <button 
-            v-if="campanha.status === 'pending' || campanha.status === 'scheduled'"
+            v-if=" campanha.status === 'draft' ||campanha.status === 'pending' || campanha.status === 'scheduled'"
             @click="enviarCampanha(campanha)" 
             class="btn-action btn-send"
           >
@@ -695,7 +695,7 @@ export default {
     duplicarCampanha(campanha) {
       if (confirm(`Deseja duplicar a campanha "${campanha.name}"?`)) {
         this.$router.push({ 
-          name: 'CriarCampanha', 
+          name: 'Criar_Campanha', 
           query: { duplicate: campanha.id } 
         });
       }

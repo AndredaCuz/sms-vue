@@ -450,7 +450,8 @@ export default {
     getCompanyId() {
       // Você pode obter o company_id do localStorage ou de um store Vuex
       // Por enquanto, vou retornar 1 como padrão
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = JSON.parse(localStorage.getItem('user_data') || '{}');
+     console.log(user);
       return user.company_id || 1;
     },
 

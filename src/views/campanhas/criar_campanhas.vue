@@ -634,7 +634,7 @@ export default {
         console.log('✅ Resposta:', response.data);
 
         alert('✅ Campanha criada com sucesso!');
-        this.$router.push({ name: 'MinhasCampanhas' });
+        this.$router.push({ name: 'Lista_campanhas' });
 
       } catch (error) {
         console.error('❌ Erro ao criar campanha:', error);

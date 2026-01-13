@@ -15,8 +15,11 @@
           <i class="fas fa-sync-alt" :class="{ 'fa-spin': carregando }"></i>
           Atualizar
         </button>
-        <RouterLink to="/gerir" class="btn btn-accent">
-          <i class="fas fa-cog"></i> Gerir Sistema
+        <RouterLink to="/lista_empresa" class="btn btn-accent">
+          <i class="fas fa-building"></i> Empresas
+        </RouterLink>
+        <RouterLink to="/lista_planos" class="btn btn-accent">
+          <i class="fas fa-building"></i> Planos
         </RouterLink>
       </div>
     </div>
@@ -26,6 +29,20 @@
       <div v-if="carregando" class="loading-overlay">
         <div class="spinner"></div>
         <p>Carregando dados...</p>
+      </div>
+    </transition>
+
+    <!-- ERROR MESSAGE -->
+    <transition name="slide-down">
+      <div v-if="erro" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <div class="alert-content">
+          <strong>Erro!</strong>
+          {{ erro }}
+        </div>
+        <button @click="atualizarDados" class="alert-link">
+          Tentar novamente <i class="fas fa-redo"></i>
+        </button>
       </div>
     </transition>
 
@@ -43,60 +60,55 @@
         <div class="stat-content">
           <div class="stat-value">{{ stat.value }}</div>
           <div class="stat-label">{{ stat.label }}</div>
-          <div v-if="stat.variacao" class="stat-variacao" :class="stat.variacao > 0 ? 'positiva' : 'negativa'">
-            <i :class="stat.variacao > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
-            {{ Math.abs(stat.variacao) }}% vs mês anterior
+          <div v-if="stat.subtitle" class="stat-subtitle">
+            {{ stat.subtitle }}
           </div>
         </div>
       </div>
     </div>
-
-    <!-- ALERT -->
-    <transition name="slide-down">
-      <div v-if="solicitacoesPendentes > 0" class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle"></i>
-        <div class="alert-content">
-          <strong>Atenção!</strong>
-          Você tem {{ solicitacoesPendentes }} solicitações pendentes aguardando aprovação.
-        </div>
-        <RouterLink to="/admin/solicitacoes" class="alert-link">
-          Ver solicitações <i class="fas fa-arrow-right"></i>
-        </RouterLink>
-      </div>
-    </transition>
 
     <!-- RESUMO RÁPIDO -->
     <div class="info-cards-grid">
       <div class="info-card">
         <div class="info-card-header">
           <i class="fas fa-chart-line"></i>
-          <h4>Taxa de Conversão</h4>
+          <h4>Empresas Ativas</h4>
         </div>
         <div class="info-card-body">
-          <div class="big-number">87.5%</div>
-          <p class="info-text">Empresas aprovadas vs solicitações</p>
+          <div class="big-number">{{ dashboardData.companies?.active || 0 }}</div>
+          <p class="info-text">
+            de {{ dashboardData.companies?.total || 0 }} empresas totais
+            <span v-if="dashboardData.companies?.suspended > 0" class="text-danger">
+              ({{ dashboardData.companies.suspended }} suspensas)
+            </span>
+          </p>
         </div>
       </div>
 
       <div class="info-card">
         <div class="info-card-header">
-          <i class="fas fa-dollar-sign"></i>
-          <h4>Ticket Médio</h4>
+          <i class="fas fa-wallet"></i>
+          <h4>Receita Total</h4>
         </div>
         <div class="info-card-body">
-          <div class="big-number">55.000 AOA</div>
-          <p class="info-text">Valor médio por transação</p>
+          <div class="big-number">{{ formatCurrency(dashboardData.revenue?.total_plans_value || 0) }}</div>
+          <p class="info-text">Valor total dos planos ativos</p>
         </div>
       </div>
 
       <div class="info-card">
         <div class="info-card-header">
           <i class="fas fa-users"></i>
-          <h4>Taxa de Retenção</h4>
+          <h4>Subscrições</h4>
         </div>
         <div class="info-card-body">
-          <div class="big-number">92.3%</div>
-          <p class="info-text">Clientes ativos nos últimos 30 dias</p>
+          <div class="big-number">{{ dashboardData.subscriptions?.active || 0 }}</div>
+          <p class="info-text">
+            ativas
+            <span v-if="dashboardData.subscriptions?.expiring_soon > 0" class="text-warning">
+              ({{ dashboardData.subscriptions.expiring_soon }} expiram em breve)
+            </span>
+          </p>
         </div>
       </div>
     </div>
@@ -106,22 +118,23 @@
       <div class="card chart-card">
         <div class="card-header">
           <div class="card-title-wrapper">
-            <i class="fas fa-money-bill-wave"></i>
-            <h3 class="card-title">Receita dos Últimos 6 Meses</h3>
+            <i class="fas fa-building"></i>
+            <h3 class="card-title">Distribuição de Empresas</h3>
           </div>
-          <button class="btn-icon" title="Exportar dados">
+          <button class="btn-icon" title="Exportar dados" @click="exportarEmpresas">
             <i class="fas fa-download"></i>
           </button>
         </div>
         <div class="chart-container">
-          <canvas ref="receitaChart"></canvas>
+          <canvas ref="empresasChart"></canvas>
         </div>
         <div class="card-footer">
           <span class="footer-stat">
-            <strong>Total:</strong> 3.440.000 AOA
+            <strong>Total:</strong> {{ dashboardData.companies?.total || 0 }} empresas
           </span>
-          <span class="footer-stat success">
-            <i class="fas fa-arrow-up"></i> +18.5%
+          <span class="footer-stat" :class="dashboardData.companies?.new_this_month > 0 ? 'success' : ''">
+            <i :class="dashboardData.companies?.new_this_month > 0 ? 'fas fa-arrow-up' : 'fas fa-minus'"></i>
+            {{ dashboardData.companies?.new_this_month || 0 }} este mês
           </span>
         </div>
       </div>
@@ -130,9 +143,9 @@
         <div class="card-header">
           <div class="card-title-wrapper">
             <i class="fas fa-paper-plane"></i>
-            <h3 class="card-title">SMS Enviados por Mês</h3>
+            <h3 class="card-title">SMS Enviados</h3>
           </div>
-          <button class="btn-icon" title="Exportar dados">
+          <button class="btn-icon" title="Exportar dados" @click="exportarSMS">
             <i class="fas fa-download"></i>
           </button>
         </div>
@@ -141,23 +154,59 @@
         </div>
         <div class="card-footer">
           <span class="footer-stat">
-            <strong>Total:</strong> 1.330.000 SMS
+            <strong>Hoje:</strong> {{ dashboardData.sms?.total_sent_today || 0 }} SMS
           </span>
-          <span class="footer-stat success">
-            <i class="fas fa-arrow-up"></i> +12.3%
+          <span class="footer-stat">
+            <strong>Este mês:</strong> {{ dashboardData.sms?.total_sent_this_month || 0 }} SMS
           </span>
         </div>
       </div>
     </div>
 
-    <!-- SOLICITAÇÕES RECENTES -->
+    <!-- ESTATÍSTICAS ADICIONAIS -->
+    <div class="info-cards-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <i class="fas fa-users"></i>
+          <h4>Total de Clientes SMS</h4>
+        </div>
+        <div class="info-card-body">
+          <div class="big-number">{{ dashboardData.sms?.total_clients || 0 }}</div>
+          <p class="info-text">Clientes cadastrados no sistema</p>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-card-header">
+          <i class="fas fa-bullhorn"></i>
+          <h4>Campanhas SMS</h4>
+        </div>
+        <div class="info-card-body">
+          <div class="big-number">{{ dashboardData.sms?.total_campaigns || 0 }}</div>
+          <p class="info-text">Total de campanhas criadas</p>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-card-header">
+          <i class="fas fa-clock"></i>
+          <h4>Subscrições Expiradas</h4>
+        </div>
+        <div class="info-card-body">
+          <div class="big-number">{{ dashboardData.subscriptions?.expired || 0 }}</div>
+          <p class="info-text">Necessitam renovação</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMPRESAS RECENTES -->
     <div class="card">
       <div class="card-header">
         <div class="card-title-wrapper">
-          <i class="fas fa-file-invoice"></i>
-          <h3 class="card-title">Solicitações Recentes</h3>
+          <i class="fas fa-building"></i>
+          <h3 class="card-title">Empresas Recentes</h3>
         </div>
-        <RouterLink to="/admin/solicitacoes" class="btn btn-sm btn-secondary">
+        <RouterLink to="/admin/empresas" class="btn btn-sm btn-secondary">
           Ver todas <i class="fas fa-arrow-right"></i>
         </RouterLink>
       </div>
@@ -167,69 +216,79 @@
           <thead>
             <tr>
               <th>Empresa</th>
-              <th>Pacote</th>
-              <th>Valor</th>
-              <th>Data</th>
+              <th>NIF</th>
+              <th>Contato</th>
+              <th>Plano</th>
+              <th>Data de Registro</th>
               <th>Status</th>
               <th class="text-center">Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="solicitacao in solicitacoes" :key="solicitacao.id">
+            <tr v-if="!dashboardData.recent_companies || dashboardData.recent_companies.length === 0">
+              <td colspan="7" class="text-center" style="padding: 2rem; color: #6b7280;">
+                Nenhuma empresa cadastrada ainda
+              </td>
+            </tr>
+            <tr v-for="empresa in dashboardData.recent_companies" :key="empresa.id">
               <td>
                 <div class="empresa-info">
                   <div class="empresa-avatar">
-                    {{ solicitacao.empresa.charAt(0) }}
+                    {{ empresa.name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="empresa-detalhes">
-                    <strong>{{ solicitacao.empresa }}</strong>
-                    <small>{{ solicitacao.email }}</small>
+                    <strong>{{ empresa.name }}</strong>
+                    <small>{{ empresa.email }}</small>
                   </div>
                 </div>
               </td>
+              <td>{{ empresa.nif }}</td>
+              <td>{{ empresa.phone }}</td>
               <td>
-                <span class="badge badge-info">
-                  <i class="fas fa-sms"></i> {{ solicitacao.pacote }}
+                <span v-if="empresa.subscription" class="badge badge-info">
+                  {{ empresa.subscription.plan.name }}
+                </span>
+                <span v-else class="badge badge-secondary">
+                  Sem plano
                 </span>
               </td>
-              <td><strong>{{ solicitacao.valor }}</strong></td>
-              <td>{{ solicitacao.data }}</td>
+              <td>{{ formatDate(empresa.created_at) }}</td>
               <td>
                 <span
                   class="badge"
                   :class="{
-                    'badge-warning': solicitacao.status === 'pendente',
-                    'badge-success': solicitacao.status === 'aprovado',
-                    'badge-danger': solicitacao.status === 'rejeitado'
+                    'badge-success': empresa.status === 'active',
+                    'badge-warning': empresa.status === 'pending',
+                    'badge-danger': empresa.status === 'suspended',
+                    'badge-secondary': empresa.status === 'inactive'
                   }"
                 >
-                  {{ solicitacao.status }}
+                  {{ getStatusText(empresa.status) }}
                 </span>
               </td>
               <td class="text-center">
                 <div class="action-buttons">
                   <button 
-                    v-if="solicitacao.status === 'pendente'" 
-                    @click="aprovarSolicitacao(solicitacao.id)"
-                    class="btn-icon btn-success"
-                    title="Aprovar"
+                    v-if="empresa.subscription"
+                    @click="verSubscricao(empresa.id)"
+                    class="btn-icon btn-info"
+                    title="Ver subscrição"
                   >
-                    <i class="fas fa-check"></i>
+                    <i class="fas fa-receipt"></i>
                   </button>
                   <button 
-                    v-if="solicitacao.status === 'pendente'" 
-                    @click="rejeitarSolicitacao(solicitacao.id)"
-                    class="btn-icon btn-danger"
-                    title="Rejeitar"
-                  >
-                    <i class="fas fa-times"></i>
-                  </button>
-                  <button 
-                    @click="verDetalhes(solicitacao.id)"
+                    @click="verEmpresa(empresa.id)"
                     class="btn-icon"
                     title="Ver detalhes"
                   >
                     <i class="fas fa-eye"></i>
+                  </button>
+                  <button 
+                    @click="editarEmpresa(empresa.id)"
+                    class="btn-icon btn-secondary"
+                    title="Editar"
+                  >
+                    <i class="fas fa-edit"></i>
                   </button>
                 </div>
               </td>
@@ -251,85 +310,97 @@ import navegacao from '../../components/navegacao.vue'
 // ===========================
 
 const carregando = ref(false)
+const erro = ref('')
 const dataHoraAtual = ref('')
-const solicitacoesPendentes = ref(3)
+
+const dashboardData = ref({
+  companies: {
+    total: 0,
+    active: 0,
+    suspended: 0,
+    new_this_month: 0
+  },
+  subscriptions: {
+    active: 0,
+    expired: 0,
+    expiring_soon: 0
+  },
+  sms: {
+    total_sent_today: 0,
+    total_sent_this_month: 0,
+    total_clients: 0,
+    total_campaigns: 0
+  },
+  revenue: {
+    total_plans_value: 0
+  },
+  recent_companies: []
+})
 
 const stats = ref([
   {
-    label: 'Empresas Ativas',
-    value: '47',
+    label: 'Empresas Totais',
+    value: '0',
+    subtitle: '',
     icon: 'fas fa-building',
-    bg: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-    variacao: 12.5
+    bg: 'linear-gradient(135deg, #3B82F6, #2563EB)'
   },
   {
-    label: 'SMS Enviados',
-    value: '1.245.890',
+    label: 'SMS Este Mês',
+    value: '0',
+    subtitle: '',
     icon: 'fas fa-paper-plane',
-    bg: 'linear-gradient(135deg, #10B981, #059669)',
-    variacao: 8.3
+    bg: 'linear-gradient(135deg, #10B981, #059669)'
   },
   {
-    label: 'Créditos Vendidos',
-    value: '458.720',
+    label: 'Receita Total',
+    value: '0 AOA',
+    subtitle: '',
     icon: 'fas fa-wallet',
-    bg: 'linear-gradient(135deg, #F59E0B, #D97706)',
-    variacao: 15.7
+    bg: 'linear-gradient(135deg, #F59E0B, #D97706)'
   },
   {
-    label: 'Solicitações Pendentes',
-    value: '3',
-    icon: 'fas fa-clock',
-    bg: 'linear-gradient(135deg, #EF4444, #DC2626)',
-    variacao: -5.2
+    label: 'Subscrições Ativas',
+    value: '0',
+    subtitle: '',
+    icon: 'fas fa-check-circle',
+    bg: 'linear-gradient(135deg, #8B5CF6, #7C3AED)'
   }
 ])
 
-const solicitacoes = ref([
-  {
-    id: 1,
-    empresa: 'Tech Solutions Lda',
-    email: 'contato@techsolutions.ao',
-    pacote: '5000 SMS',
-    valor: '50.000 AOA',
-    data: '05/01/2026',
-    status: 'pendente'
-  },
-  {
-    id: 2,
-    empresa: 'Mega Store Angola',
-    email: 'admin@megastore.ao',
-    pacote: '2000 SMS',
-    valor: '22.000 AOA',
-    data: '04/01/2026',
-    status: 'aprovado'
-  },
-  {
-    id: 3,
-    empresa: 'Farmácias Central',
-    email: 'ti@farmcentral.ao',
-    pacote: '10000 SMS',
-    valor: '95.000 AOA',
-    data: '03/01/2026',
-    status: 'pendente'
-  },
-  {
-    id: 4,
-    empresa: 'Supermercado Kero',
-    email: 'gestao@kero.ao',
-    pacote: '3000 SMS',
-    valor: '32.000 AOA',
-    data: '02/01/2026',
-    status: 'aprovado'
-  }
-])
-
-const receitaChart = ref(null)
+const empresasChart = ref(null)
 const smsChart = ref(null)
 
 // ===========================
 // MÉTODOS
 // ===========================
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('pt-AO', {
+    style: 'currency',
+    currency: 'AOA',
+    minimumFractionDigits: 2
+  }).format(value)
+}
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('pt-AO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const getStatusText = (status) => {
+  const statusMap = {
+    'active': 'Ativa',
+    'pending': 'Pendente',
+    'suspended': 'Suspensa',
+    'inactive': 'Inativa'
+  }
+  return statusMap[status] || status
+}
 
 const atualizarDataHora = () => {
   const agora = new Date()
@@ -343,44 +414,138 @@ const atualizarDataHora = () => {
   dataHoraAtual.value = agora.toLocaleDateString('pt-AO', opcoes)
 }
 
+const buscarDadosAPI = async () => {
+  try {
+    const API_URL = 'https://api.devsms.online/api/v1/admin/dashboard'
+    
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+    
+    // Verificar se há token antes de fazer a requisição
+    if (!token) {
+      throw new Error('Token de autenticação não encontrado. Por favor, faça login.')
+    }
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+    
+    const response = await fetch(API_URL, {
+      method: 'GET',
+      headers: headers
+      // Removido credentials: 'include' para resolver problema de CORS
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Por favor, faça login novamente.')
+      }
+      if (response.status === 403) {
+        throw new Error('Acesso negado. Você não tem permissão para acessar esta página.')
+      }
+      throw new Error(`Erro HTTP! Status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Erro ao buscar dados da API:', error)
+    throw error
+  }
+}
+
 const atualizarDados = async () => {
   carregando.value = true
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  atualizarDataHora()
-  carregando.value = false
-}
-
-const aprovarSolicitacao = (id) => {
-  const solicitacao = solicitacoes.value.find(s => s.id === id)
-  if (solicitacao) {
-    solicitacao.status = 'aprovado'
-    solicitacoesPendentes.value--
-    stats.value[3].value = String(solicitacoesPendentes.value)
-    alert(`Solicitação de ${solicitacao.empresa} aprovada com sucesso!`)
+  erro.value = ''
+  
+  try {
+    const resultado = await buscarDadosAPI()
+    
+    if (resultado.success && resultado.data) {
+      dashboardData.value = resultado.data
+      
+      // Atualizar stats dinamicamente
+      stats.value[0].value = dashboardData.value.companies.total.toString()
+      stats.value[0].subtitle = `${dashboardData.value.companies.active} ativas, ${dashboardData.value.companies.suspended} suspensas`
+      
+      stats.value[1].value = dashboardData.value.sms.total_sent_this_month.toLocaleString('pt-AO')
+      stats.value[1].subtitle = `${dashboardData.value.sms.total_sent_today} enviados hoje`
+      
+      stats.value[2].value = formatCurrency(dashboardData.value.revenue.total_plans_value)
+      stats.value[2].subtitle = 'Valor total dos planos'
+      
+      stats.value[3].value = dashboardData.value.subscriptions.active.toString()
+      stats.value[3].subtitle = dashboardData.value.subscriptions.expiring_soon > 0 
+        ? `${dashboardData.value.subscriptions.expiring_soon} expiram em breve`
+        : 'Nenhuma expirando'
+      
+      atualizarDataHora()
+      criarGraficos()
+    } else {
+      throw new Error('Erro na resposta da API')
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dashboard:', error)
+    
+    // Mensagens de erro mais específicas
+    if (error.message.includes('Não autorizado')) {
+      erro.value = 'Sessão expirada. Por favor, faça login novamente.'
+      // Opcional: redirecionar para login após 3 segundos
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 3000)
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      erro.value = 'Erro de conexão. Verifique sua internet e tente novamente.'
+    } else {
+      erro.value = error.message || 'Erro ao carregar dados. Tente novamente.'
+    }
+  } finally {
+    carregando.value = false
   }
 }
 
-const rejeitarSolicitacao = (id) => {
-  const solicitacao = solicitacoes.value.find(s => s.id === id)
-  if (solicitacao && confirm(`Deseja realmente rejeitar a solicitação de ${solicitacao.empresa}?`)) {
-    solicitacao.status = 'rejeitado'
-    solicitacoesPendentes.value--
-    stats.value[3].value = String(solicitacoesPendentes.value)
-    alert('Solicitação rejeitada.')
-  }
+const verEmpresa = (id) => {
+  window.location.href = `/admin/empresas/${id}`
 }
 
-const verDetalhes = (id) => {
-  alert(`Ver detalhes da solicitação #${id}`)
+const editarEmpresa = (id) => {
+  window.location.href = `/admin/empresas/${id}/editar`
+}
+
+const verSubscricao = (id) => {
+  window.location.href = `/admin/subscricoes?empresa=${id}`
+}
+
+const exportarEmpresas = () => {
+  alert('Funcionalidade de exportação será implementada em breve.')
+}
+
+const exportarSMS = () => {
+  alert('Funcionalidade de exportação será implementada em breve.')
 }
 
 const criarGraficos = () => {
-  // Configuração comum para gráficos
+  // Destruir gráficos existentes
+  if (empresasChart.value && empresasChart.value._chart) {
+    empresasChart.value._chart.destroy()
+  }
+  if (smsChart.value && smsChart.value._chart) {
+    smsChart.value._chart.destroy()
+  }
+
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { 
+        display: true,
+        position: 'bottom',
+        labels: {
+          padding: 15,
+          font: { size: 12 }
+        }
+      },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
@@ -392,100 +557,84 @@ const criarGraficos = () => {
     }
   }
 
-  // Gráfico de Receita
-  new Chart(receitaChart.value, {
-    type: 'bar',
-    data: {
-      labels: ['Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-      datasets: [{
-        label: 'Receita',
-        data: [450000, 520000, 480000, 680000, 590000, 720000],
-        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-        borderRadius: 8,
-        borderWidth: 0,
-        hoverBackgroundColor: 'rgba(16, 185, 129, 1)'
-      }]
-    },
-    options: {
-      ...commonOptions,
-      plugins: {
-        ...commonOptions.plugins,
-        tooltip: {
-          ...commonOptions.plugins.tooltip,
-          callbacks: {
-            label: (context) => 'Receita: ' + context.parsed.y.toLocaleString('pt-AO') + ' AOA'
-          }
-        }
+  // Gráfico de Empresas
+  if (empresasChart.value) {
+    new Chart(empresasChart.value, {
+      type: 'doughnut',
+      data: {
+        labels: ['Ativas', 'Suspensas', 'Novas este mês'],
+        datasets: [{
+          data: [
+            dashboardData.value.companies?.active || 0,
+            dashboardData.value.companies?.suspended || 0,
+            dashboardData.value.companies?.new_this_month || 0
+          ],
+          backgroundColor: [
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(59, 130, 246, 0.8)'
+          ],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            callback: (value) => value.toLocaleString('pt-AO') + ' AOA'
-          }
-        },
-        x: {
-          grid: {
-            display: false
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          tooltip: {
+            ...commonOptions.plugins.tooltip,
+            callbacks: {
+              label: (context) => `${context.label}: ${context.parsed} empresas`
+            }
           }
         }
       }
-    }
-  })
+    })
+  }
 
   // Gráfico de SMS
-  new Chart(smsChart.value, {
-    type: 'line',
-    data: {
-      labels: ['Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-      datasets: [{
-        label: 'SMS Enviados',
-        data: [185000, 215000, 195000, 245000, 225000, 265000],
-        borderColor: '#3B82F6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointBackgroundColor: '#3B82F6',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverBackgroundColor: '#3B82F6',
-        pointHoverBorderColor: '#fff'
-      }]
-    },
-    options: {
-      ...commonOptions,
-      plugins: {
-        ...commonOptions.plugins,
-        tooltip: {
-          ...commonOptions.plugins.tooltip,
-          callbacks: {
-            label: (context) => 'SMS: ' + context.parsed.y.toLocaleString('pt-AO')
-          }
-        }
+  if (smsChart.value) {
+    new Chart(smsChart.value, {
+      type: 'bar',
+      data: {
+        labels: ['Hoje', 'Este Mês', 'Clientes', 'Campanhas'],
+        datasets: [{
+          label: 'Estatísticas SMS',
+          data: [
+            dashboardData.value.sms?.total_sent_today || 0,
+            dashboardData.value.sms?.total_sent_this_month || 0,
+            dashboardData.value.sms?.total_clients || 0,
+            dashboardData.value.sms?.total_campaigns || 0
+          ],
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(16, 185, 129, 0.8)'
+          ],
+          borderRadius: 8,
+          borderWidth: 0
+        }]
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
+      options: {
+        ...commonOptions,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
           },
-          ticks: {
-            callback: (value) => value.toLocaleString('pt-AO')
-          }
-        },
-        x: {
-          grid: {
-            display: false
+          x: {
+            grid: {
+              display: false
+            }
           }
         }
       }
-    }
-  })
+    })
+  }
 }
 
 // ===========================
@@ -494,7 +643,7 @@ const criarGraficos = () => {
 
 onMounted(() => {
   atualizarDataHora()
-  criarGraficos()
+  atualizarDados()
 })
 </script>
 
@@ -674,23 +823,12 @@ onMounted(() => {
 .stat-label {
   color: #6b7280;
   font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.stat-variacao {
+.stat-subtitle {
+  color: #9ca3af;
   font-size: 0.75rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.stat-variacao.positiva {
-  color: #10b981;
-}
-
-.stat-variacao.negativa {
-  color: #ef4444;
 }
 
 /* ===========================
@@ -706,10 +844,10 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-.alert-warning {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #fbbf24;
-  color: #92400e;
+.alert-danger {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #ef4444;
+  color: #991b1b;
 }
 
 .alert i:first-child {
@@ -733,6 +871,8 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.05);
   border-radius: 6px;
   transition: all 0.2s;
+  border: none;
+  cursor: pointer;
 }
 
 .alert-link:hover {
@@ -793,6 +933,16 @@ onMounted(() => {
   color: #6b7280;
   font-size: 0.875rem;
   margin: 0;
+}
+
+.text-danger {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.text-warning {
+  color: #f59e0b;
+  font-weight: 600;
 }
 
 /* ===========================

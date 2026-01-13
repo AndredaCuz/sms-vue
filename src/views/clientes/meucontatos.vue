@@ -1,3 +1,7 @@
+
+
+
+
 <template>
   <navegacao/>
   
@@ -11,7 +15,7 @@
         <p class="page-description">Gerencie seus contatos e clientes</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-outline" @click="importExcel">
+        <button class="btn btn-outline" @click="showImportModal = true">
           <i class="fas fa-file-import"></i>
           Importar Excel
         </button>
@@ -91,9 +95,11 @@
           <span class="contacts-count">
             <i class="fas fa-users"></i> {{ pagination.total }} contatos
           </span>
-          <button class="btn btn-ghost btn-sm" @click="exportarContatos">
-            <i class="fas fa-download"></i> Exportar
-          </button>
+          
+          <button class="btn btn-ghost btn-sm" @click="showImportModal = true">
+          <i class="fas fa-download"></i>
+          Importar Excel
+        </button>
         </div>
       </div>
 
@@ -257,7 +263,122 @@
       </div>
     </div>
 
-    <!-- Modal de Detalhes -->
+    <!-- Modal de Importação Excel -->
+    <div v-if="showImportModal" class="modal-overlay" @click="closeImportModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2 class="modal-title">
+            <i class="fas fa-file-import"></i> Importar Contatos do Excel
+          </h2>
+          <button class="modal-close" @click="closeImportModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Instruções -->
+          <div class="import-instructions">
+            <h4><i class="fas fa-info-circle"></i> Instruções</h4>
+            <ul>
+              <li>O arquivo deve estar no formato <strong>.xlsx</strong> ou <strong>.xls</strong></li>
+              <li>A primeira linha deve conter os cabeçalhos das colunas</li>
+              <li>Colunas obrigatórias: <strong>nome</strong> e <strong>telefone</strong></li>
+              <li>Colunas opcionais: email, endereço, dívida, etc.</li>
+              <li>Selecione uma categoria para todos os contatos importados</li>
+            </ul>
+          </div>
+
+          <!-- Seleção de Categoria -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-tag"></i> Categoria <span class="required">*</span>
+            </label>
+            <select v-model="importData.category_id" class="form-control form-select" required>
+              <option value="">Selecione uma categoria</option>
+              <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+            <small class="form-text">Todos os contatos importados serão adicionados a esta categoria</small>
+          </div>
+
+          <!-- Upload de Arquivo -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-file-excel"></i> Arquivo Excel <span class="required">*</span>
+            </label>
+            <div class="file-upload-area" @dragover.prevent @drop.prevent="handleFileDrop">
+              <input 
+                type="file" 
+                ref="fileInput"
+                @change="handleFileSelect"
+                accept=".xlsx,.xls"
+                class="file-input"
+                id="excel-file"
+              >
+              <label for="excel-file" class="file-upload-label">
+                <div v-if="!importData.file" class="upload-placeholder">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <p><strong>Clique para selecionar</strong> ou arraste o arquivo aqui</p>
+                  <small>Formatos aceitos: .xlsx, .xls</small>
+                </div>
+                <div v-else class="file-selected">
+                  <i class="fas fa-file-excel"></i>
+                  <div class="file-info">
+                    <p class="file-name">{{ importData.file.name }}</p>
+                    <p class="file-size">{{ formatFileSize(importData.file.size) }}</p>
+                  </div>
+                  <button type="button" class="btn-remove-file" @click.prevent="removeFile">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div v-if="importProgress.uploading" class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: importProgress.percent + '%' }"></div>
+            </div>
+            <p class="progress-text">{{ importProgress.message }}</p>
+          </div>
+
+          <!-- Resultado da Importação -->
+          <div v-if="importResult" class="import-result" :class="importResult.type">
+            <i :class="importResult.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
+            <div class="result-content">
+              <h4>{{ importResult.title }}</h4>
+              <p>{{ importResult.message }}</p>
+              <div v-if="importResult.details" class="result-details">
+                <div v-if="importResult.details.imported">
+                  <i class="fas fa-check"></i> {{ importResult.details.imported }} contatos importados com sucesso
+                </div>
+                <div v-if="importResult.details.failed" class="text-danger">
+                  <i class="fas fa-times"></i> {{ importResult.details.failed }} contatos falharam
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" @click="closeImportModal" :disabled="importProgress.uploading">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button 
+            class="btn btn-accent" 
+            @click="importarExcel"
+            :disabled="!importData.file || !importData.category_id || importProgress.uploading"
+          >
+            <i :class="importProgress.uploading ? 'fas fa-spinner fa-spin' : 'fas fa-upload'"></i>
+            {{ importProgress.uploading ? 'Importando...' : 'Importar Contatos' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Detalhes do Contato -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -381,6 +502,7 @@ export default {
       contatosSelecionados: [],
       selectAll: false,
       showModal: false,
+      showImportModal: false,
       contatoSelecionado: null,
       filtros: {
         busca: '',
@@ -396,7 +518,17 @@ export default {
         to: 0,
         next_page_url: null,
         prev_page_url: null
-      }
+      },
+      importData: {
+        file: null,
+        category_id: ''
+      },
+      importProgress: {
+        uploading: false,
+        percent: 0,
+        message: ''
+      },
+      importResult: null
     };
   },
 
@@ -404,7 +536,6 @@ export default {
     contatosFiltrados() {
       let filtered = [...this.contatos];
       
-      // Filtro de busca
       if (this.filtros.busca) {
         const busca = this.filtros.busca.toLowerCase();
         filtered = filtered.filter(c => 
@@ -414,12 +545,10 @@ export default {
         );
       }
       
-      // Filtro de categoria
       if (this.filtros.categoria) {
         filtered = filtered.filter(c => c.category_id === parseInt(this.filtros.categoria));
       }
       
-      // Filtro de status
       if (this.filtros.status) {
         filtered = filtered.filter(c => c.status === this.filtros.status);
       }
@@ -481,7 +610,6 @@ export default {
         const data = response.data.data;
         this.contatos = data.data;
         
-        // Atualizar paginação
         this.pagination = {
           current_page: data.current_page,
           per_page: data.per_page,
@@ -493,7 +621,6 @@ export default {
           prev_page_url: data.prev_page_url
         };
 
-        // Extrair categorias únicas
         const categoriasSet = new Map();
         this.contatos.forEach(c => {
           if (c.category) {
@@ -501,8 +628,6 @@ export default {
           }
         });
         this.categorias = Array.from(categoriasSet.values());
-
-        console.log('Contatos carregados:', this.contatos.length);
 
       } catch (error) {
         console.error('Erro ao buscar contatos:', error);
@@ -516,6 +641,131 @@ export default {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        this.importData.file = file;
+        this.importResult = null;
+      }
+    },
+
+    handleFileDrop(event) {
+      const file = event.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+        this.importData.file = file;
+        this.importResult = null;
+      } else {
+        alert('Por favor, selecione um arquivo Excel (.xlsx ou .xls)');
+      }
+    },
+
+    removeFile() {
+      this.importData.file = null;
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = '';
+      }
+    },
+
+    async importarExcel() {
+      if (!this.importData.file || !this.importData.category_id) {
+        alert('Por favor, selecione um arquivo e uma categoria');
+        return;
+      }
+
+      const token = localStorage.getItem('auth_token');
+      const formData = new FormData();
+      formData.append('file', this.importData.file);
+      formData.append('category_id', this.importData.category_id);
+
+      this.importProgress = {
+        uploading: true,
+        percent: 0,
+        message: 'Enviando arquivo...'
+      };
+      this.importResult = null;
+
+      try {
+        const response = await axios.post(
+          'https://api.devsms.online/api/v1/clients/import',
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json',
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              this.importProgress.percent = percent;
+              this.importProgress.message = `Enviando arquivo... ${percent}%`;
+            }
+          }
+        );
+
+        this.importProgress.message = 'Processando importação...';
+        
+        if (response.data.success) {
+          this.importResult = {
+            type: 'success',
+            title: 'Importação concluída com sucesso!',
+            message: response.data.message || 'Os contatos foram importados com sucesso.',
+            details: response.data.data
+          };
+
+          // Atualizar lista de contatos
+          setTimeout(() => {
+            this.fetchClients();
+          }, 2000);
+        }
+
+      } catch (error) {
+        console.error('Erro ao importar contatos:', error);
+        
+        this.importResult = {
+          type: 'error',
+          title: 'Erro na importação',
+          message: error.response?.data?.message || 'Ocorreu um erro ao importar os contatos. Por favor, verifique o arquivo e tente novamente.',
+          details: error.response?.data?.errors
+        };
+
+      } finally {
+        this.importProgress.uploading = false;
+        this.importProgress.percent = 100;
+      }
+    },
+
+    closeImportModal() {
+      this.showImportModal = false;
+      this.importData = {
+        file: null,
+        category_id: ''
+      };
+      this.importProgress = {
+        uploading: false,
+        percent: 0,
+        message: ''
+      };
+      this.importResult = null;
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = '';
+      }
+    },
+
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    },
+formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     },
 
     changePage(page) {
@@ -550,7 +800,7 @@ export default {
     },
 
     editarContato(id) {
-      this.$router.push({ name: 'EditarContato', params: { id } });
+      this.$router.push({ name: 'Atualizar', params: { id } });
     },
 
     enviarSMS(contato) {
@@ -633,10 +883,6 @@ export default {
       }
     },
 
-    importExcel() {
-      alert('Funcionalidade de importação em desenvolvimento');
-    },
-
     getInitials(name) {
       if (!name) return '??';
       const parts = name.split(' ');
@@ -648,7 +894,6 @@ export default {
 
     formatPhone(phone) {
       if (!phone) return '-';
-      // Formato: 939 733 535
       return phone.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
     },
 
@@ -693,7 +938,26 @@ export default {
 };
 </script>
 
-<style scoped>
+
+
+
+    <style scoped>
+:root {
+  --primary: #3b82f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+}
+
 .contacts-page {
   padding: 2rem;
   max-width: 1400px;
@@ -799,6 +1063,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin: 0;
 }
 
 .card-header-actions {
@@ -835,6 +1100,14 @@ export default {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
 }
 
 .mb-0 {
@@ -1043,6 +1316,11 @@ export default {
   color: var(--warning);
 }
 
+.badge-secondary {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--gray-600);
+}
+
 .status-dot {
   font-size: 0.5rem;
 }
@@ -1123,7 +1401,251 @@ export default {
   flex-wrap: wrap;
 }
 
-/* Modal Styles */
+/* Estilos do Modal de Importação */
+.import-instructions {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.import-instructions h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.import-instructions ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #075985;
+}
+
+.import-instructions li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 0.5rem;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.form-text {
+  display: block;
+  font-size: 0.813rem;
+  color: var(--gray-500);
+  margin-top: 0.375rem;
+}
+
+.file-upload-area {
+  position: relative;
+}
+
+.file-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.file-upload-label {
+  display: block;
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.02);
+}
+
+.upload-placeholder i {
+  font-size: 3rem;
+  color: var(--gray-400);
+  margin-bottom: 1rem;
+}
+
+.upload-placeholder p {
+  color: var(--gray-700);
+  margin-bottom: 0.5rem;
+}
+
+.upload-placeholder small {
+  color: var(--gray-500);
+  font-size: 0.813rem;
+}
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+}
+
+.file-selected i {
+  font-size: 2.5rem;
+  color: #16a34a;
+}
+
+.file-info {
+  flex: 1;
+  text-align: left;
+}
+
+.file-name {
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 0.25rem;
+}
+
+.file-size {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.btn-remove-file {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-file:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.progress-container {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--gray-50);
+  border-radius: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  transition: width 0.3s ease;
+  border-radius: 9999px;
+}
+
+.progress-text {
+  text-align: center;
+  color: var(--gray-700);
+  font-weight: 600;
+  margin: 0;
+}
+
+.import-result {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.import-result.success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+
+.import-result.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.import-result i {
+  font-size: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.import-result.success i {
+  color: #16a34a;
+}
+
+.import-result.error i {
+  color: #dc2626;
+}
+
+.result-content {
+  flex: 1;
+}
+
+.result-content h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.import-result.success h4 {
+  color: #166534;
+}
+
+.import-result.error h4 {
+  color: #991b1b;
+}
+
+.result-content p {
+  margin: 0 0 0.75rem 0;
+  color: var(--gray-700);
+}
+
+.result-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.938rem;
+}
+
+.result-details > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gray-700);
+}
+
+.result-details .text-danger {
+  color: #dc2626;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1179,6 +1701,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin: 0;
 }
 
 .modal-close {
@@ -1230,6 +1753,7 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--gray-800);
+  margin: 0;
 }
 
 .detail-grid {
@@ -1332,66 +1856,37 @@ export default {
   gap: 1rem;
 }
 
-@media (max-width: 768px) {
-  .contacts-page {
-    padding: 1rem;
-  }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.938rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
 
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-  }
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
 
-  .header-actions .btn {
-    width: 100%;
-  }
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
 
-  .grid-4 {
-    grid-template-columns: 1fr;
-  }
-
-  .table {
-    font-size: 0.875rem;
-  }
-
-  .table th,
-  .table td {
-    padding: 0.75rem 0.5rem;
-  }
-
-  .contact-name {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .batch-actions {
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
-    min-width: auto;
-  }
-
-  .batch-buttons {
-    flex-direction: column;
-  }
-
-  .batch-buttons .btn {
-    width: 100%;
-  }
-
-  .pagination {
-    flex-direction: column;
-    gap: 1rem;
-  }
+.btn-accent {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  color: white;
 }
 </style>

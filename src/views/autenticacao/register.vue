@@ -25,9 +25,9 @@
 
       <form @submit.prevent="submitForm">
         <div class="form-row">
-          <!-- Nome do Administrador -->
+          <!-- Nome do Usuário -->
           <div class="form-group">
-            <label for="admin_name">Nome do Administrador</label>
+            <label for="admin_name">Nome do Usuário</label>
             <div class="input-wrapper">
               <span class="input-icon">👤</span>
               <input
@@ -43,9 +43,9 @@
             <span class="error-message" v-if="errors.admin_name">{{ errors.admin_name }}</span>
           </div>
 
-          <!-- Email do Administrador -->
+          <!-- Email do Usuário -->
           <div class="form-group">
-            <label for="admin_email">Email do Administrador</label>
+            <label for="admin_email">Email do Usuário</label>
             <div class="input-wrapper">
               <span class="input-icon">📧</span>
               <input
@@ -108,8 +108,7 @@
                 id="company_phone"
                 v-model="form.company_phone"
                 class="form-control"
-                placeholder="+244 9XX XXX XXX"
-                @input="formatTelefone"
+                placeholder="923456789"
                 required
               />
             </div>
@@ -174,30 +173,12 @@
           </div>
         </div>
 
-        <!-- Plano -->
-        <div class="form-group full-width">
-          <label for="plan_id">Plano</label>
-          <div class="input-wrapper">
-            <span class="input-icon">📦</span>
-            <select
-              id="plan_id"
-              v-model="form.plan_id"
-              class="form-control"
-              required
-            >
-              <option value="">Selecione um plano</option>
-              <option value="1">Plano Básico - Grátis (14 dias)</option>
-              <option value="2">Plano Profissional</option>
-              <option value="3">Plano Empresarial</option>
-            </select>
-          </div>
-          <span class="error-message" v-if="errors.plan_id">{{ errors.plan_id }}</span>
-        </div>
-
         <!-- Botão -->
         <button type="submit" class="btn-register" :disabled="isLoading">
           <span v-if="!isLoading">Criar Minha Conta</span>
-          <span v-else>Processando...</span>
+          <span v-else>
+            <i class="fas fa-spinner fa-spin"></i> Criando conta...
+          </span>
         </button>
 
         <div class="login-link">
@@ -224,7 +205,7 @@ export default {
         admin_email: "",
         password: "",
         password_confirmation: "",
-        plan_id: "",
+        plan_id: "1", // Sempre será plano básico (ID 1)
       },
       errors: {},
       statusMessage: "",
@@ -234,17 +215,6 @@ export default {
     };
   },
   methods: {
-    formatTelefone() {
-      let value = this.form.company_phone.replace(/\D/g, "");
-      if (value.length > 0) {
-        if (value.length <= 3) value = "+244 " + value;
-        else if (value.length <= 6) value = "+244 " + value.substring(0, 3) + " " + value.substring(3);
-        else if (value.length <= 9)
-          value = "+244 " + value.substring(0, 3) + " " + value.substring(3, 6) + " " + value.substring(6);
-        else value = "+244 " + value.substring(0, 3) + " " + value.substring(3, 6) + " " + value.substring(6, 9);
-      }
-      this.form.company_phone = value;
-    },
     checkPasswordStrength() {
       const password = this.form.password;
       if (!password) {
@@ -264,21 +234,31 @@ export default {
     validateForm() {
       this.errors = {};
 
-      if (this.form.admin_name.length < 3) this.errors.admin_name = "Nome deve ter no mínimo 3 caracteres";
-      if (this.form.company_name.length < 2) this.errors.company_name = "Nome da empresa deve ter no mínimo 2 caracteres";
+      if (this.form.admin_name.length < 3) 
+        this.errors.admin_name = "Nome deve ter no mínimo 3 caracteres";
+      
+      if (this.form.company_name.length < 2) 
+        this.errors.company_name = "Nome da empresa deve ter no mínimo 2 caracteres";
       
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.form.admin_email)) this.errors.admin_email = "Por favor, insira um email válido";
-      if (!emailRegex.test(this.form.company_email)) this.errors.company_email = "Por favor, insira um email válido";
+      if (!emailRegex.test(this.form.admin_email)) 
+        this.errors.admin_email = "Por favor, insira um email válido";
       
-      const telefoneNumbers = this.form.company_phone.replace(/\D/g, "");
-      if (telefoneNumbers.length < 12) this.errors.company_phone = "Telefone inválido. Use +244 9XX XXX XXX";
+      if (!emailRegex.test(this.form.company_email)) 
+        this.errors.company_email = "Por favor, insira um email válido";
       
-      if (this.form.nif.length < 5) this.errors.nif = "NIF inválido";
-      if (this.form.password.length < 8) this.errors.password = "A senha deve ter no mínimo 8 caracteres";
+      const phoneNumbers = this.form.company_phone.replace(/\D/g, "");
+      if (phoneNumbers.length < 9) 
+        this.errors.company_phone = "Telefone inválido";
+      
+      if (this.form.nif.length < 5) 
+        this.errors.nif = "NIF inválido";
+      
+      if (this.form.password.length < 8) 
+        this.errors.password = "A senha deve ter no mínimo 8 caracteres";
+      
       if (this.form.password !== this.form.password_confirmation) 
         this.errors.password_confirmation = "As senhas não coincidem";
-      if (!this.form.plan_id) this.errors.plan_id = "Por favor, selecione um plano";
 
       return Object.keys(this.errors).length === 0;
     },
@@ -301,23 +281,55 @@ export default {
           }
         });
 
-        // Sucesso
-        this.statusMessage = "Cadastro realizado com sucesso! Redirecionando...";
-        this.statusType = "success";
-        
-        console.log('Resposta da API:', response.data);
+        console.log('✅ Cadastro bem-sucedido:', response.data);
 
-        // Redirecionar após 2 segundos
-        setTimeout(() => {
-          // Aqui você pode redirecionar para o login ou dashboard
-          this.$router.push('/login');
-        }, 2000);
+        // Buscar o token
+        const token = response.data.token || 
+                     response.data.access_token || 
+                     response.data.data?.token ||
+                     response.data.data?.access_token;
+
+        if (token) {
+          // Salvar dados de autenticação
+          localStorage.setItem('auth_token', token);
+          localStorage.setItem('user_type', 'company');
+          
+          const userData = response.data.user || 
+                          response.data.data?.user || 
+                          response.data;
+          
+          if (userData) {
+            localStorage.setItem('user_data', JSON.stringify(userData));
+          }
+
+          this.statusMessage = "Conta criada com sucesso! Redirecionando...";
+          this.statusType = "success";
+
+          console.log('✅ Token salvo. Redirecionando para dashboard...');
+
+          // Aguardar um momento e redirecionar para dashboard
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          this.$router.push('/dashboard').then(() => {
+            console.log('✅ Redirecionado para dashboard');
+          }).catch(err => {
+            console.error('❌ Erro no redirecionamento:', err);
+            window.location.href = '/#/dashboard';
+          });
+        } else {
+          // Se não retornar token, redireciona para login
+          this.statusMessage = "Conta criada com sucesso! Redirecionando para login...";
+          this.statusType = "success";
+          
+          setTimeout(() => {
+            this.$router.push('/login');
+          }, 1500);
+        }
 
       } catch (error) {
-        console.error('Erro no cadastro:', error);
+        console.error('❌ Erro no cadastro:', error);
         
         if (error.response) {
-          // Erros de validação da API
           if (error.response.status === 422 && error.response.data.errors) {
             this.errors = error.response.data.errors;
             this.statusMessage = "Por favor, corrija os erros indicados";
@@ -356,6 +368,7 @@ export default {
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: 20px;
 }
 
 .register-left {
@@ -508,10 +521,6 @@ export default {
   margin-bottom: 20px;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
 .form-group label {
   display: block;
   color: #333;
@@ -544,15 +553,6 @@ export default {
   outline: none;
 }
 
-select.form-control {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 15px center;
-  background-size: 20px;
-}
-
 .form-control:focus {
   border-color: #e6e7ebff;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -568,7 +568,7 @@ select.form-control {
 .password-strength {
   margin-top: 8px;
   height: 4px;
-  background: #ec2a2aff;
+  background: #e0e0e0;
   border-radius: 2px;
   overflow: hidden;
   display: none;

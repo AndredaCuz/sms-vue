@@ -21,24 +21,6 @@
         <p>Entre com suas credenciais para acessar o sistema</p>
       </div>
 
-      <!-- User Type Toggle -->
-      <div class="user-type-toggle">
-        <button 
-          type="button"
-          :class="['toggle-btn', { active: userType === 'company' }]"
-          @click="userType = 'company'"
-        >
-          🏢 Empresa
-        </button>
-        <button 
-          type="button"
-          :class="['toggle-btn', { active: userType === 'admin' }]"
-          @click="userType = 'admin'"
-        >
-          👤 Administrador
-        </button>
-      </div>
-
       <!-- Status Message -->
       <div v-if="statusMessage" :class="['status-message', statusType]">
         {{ statusMessage }}
@@ -117,7 +99,6 @@ export default {
   name: 'Login',
   data() {
     return {
-      userType: 'company', // 'company' ou 'admin'
       form: {
         email: '',
         password: '',
@@ -141,7 +122,6 @@ export default {
 
       let isValid = true;
 
-      // Validação de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!this.form.email) {
         this.errors.email = 'Por favor, insira seu email';
@@ -151,7 +131,6 @@ export default {
         isValid = false;
       }
 
-      // Validação de senha
       if (!this.form.password) {
         this.errors.password = 'Por favor, insira sua senha';
         isValid = false;
@@ -172,13 +151,8 @@ export default {
       this.statusMessage = '';
       this.statusType = '';
 
-      // Define o endpoint baseado no tipo de usuário
-      const endpoint = this.userType === 'company' 
-        ? 'https://api.devsms.online/api/v1/auth/login'
-        : 'https://api.devsms.online/api/v1/auth/login';
-
       try {
-        const response = await axios.post(endpoint, {
+        const response = await axios.post('https://api.devsms.online/api/v1/auth/login', {
           email: this.form.email,
           password: this.form.password
         }, {
@@ -188,94 +162,90 @@ export default {
           }
         });
 
-        console.log('✅ Resposta completa da API:', response.data);
+        console.log('✅ Login bem-sucedido:', response.data);
 
-        // Buscar o token em diferentes estruturas possíveis
         const token = response.data.token || 
                      response.data.access_token || 
                      response.data.data?.token ||
                      response.data.data?.access_token;
         
         if (!token) {
-          console.error('❌ Token não encontrado na resposta:', response.data);
+          console.error('❌ Token não encontrado');
           this.statusMessage = 'Erro: Token de autenticação não recebido';
           this.statusType = 'error';
           this.isLoading = false;
           return;
         }
 
-        console.log('✅ Token recebido:', token.substring(0, 20) + '...');
+        console.log('✅ Token:', token.substring(0, 20) + '...');
 
-        // Armazenar token
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('user_type');
+
         localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_type', this.userType);
-        console.log('✅ Token armazenado no localStorage');
+        localStorage.setItem('user_type', 'company');
         
-        // Armazenar dados do usuário se disponível
         const userData = response.data.user || 
                         response.data.data?.user || 
                         response.data;
         
         if (userData) {
           localStorage.setItem('user_data', JSON.stringify(userData));
-          console.log('✅ Dados do usuário armazenados:', userData);
         }
 
-        // Armazenar remember me
         if (this.form.remember) {
           localStorage.setItem('remember_email', this.form.email);
         } else {
           localStorage.removeItem('remember_email');
         }
 
-        this.statusMessage = 'Login realizado com sucesso! Redirecionando...';
+        this.statusMessage = 'Login realizado com sucesso!';
         this.statusType = 'success';
 
-        console.log('✅ Preparando redirecionamento...');
+        console.log('✅ Dados salvos. Redirecionando...');
 
-        // Aguardar um momento para garantir que tudo foi salvo
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Redirecionar usando window.location para garantir reload completo
-        const redirectUrl = this.userType === 'admin' ? '/dashboard' : '/dashboard';
-        
-        console.log('✅ Redirecionando para:', redirectUrl);
-        window.location.href = redirectUrl;
+        console.log('🚀 Redirecionando para /dashboard');
+
+        this.$nextTick(() => {
+          this.$router.push('/dashboard').then(() => {
+            console.log('✅ Redirecionamento concluído');
+          }).catch(err => {
+            console.error('❌ Erro no redirecionamento:', err);
+            window.location.href = '/#/dashboard';
+          });
+        });
 
       } catch (error) {
         console.error('❌ Erro no login:', error);
 
         if (error.response) {
-          console.error('❌ Resposta de erro:', error.response.data);
-          
-          // Erro da API
           if (error.response.status === 401) {
-            this.statusMessage = 'Email ou senha incorretos. Tente novamente.';
+            this.statusMessage = 'Email ou senha incorretos.';
             this.statusType = 'error';
           } else if (error.response.status === 422) {
-            // Erros de validação
             if (error.response.data.errors) {
               this.errors = {
                 email: error.response.data.errors.email?.[0] || '',
                 password: error.response.data.errors.password?.[0] || ''
               };
             }
-            this.statusMessage = error.response.data.message || 'Dados inválidos. Verifique os campos.';
+            this.statusMessage = error.response.data.message || 'Dados inválidos.';
             this.statusType = 'error';
           } else if (error.response.status === 403) {
-            this.statusMessage = 'Acesso negado. Verifique suas permissões.';
+            this.statusMessage = 'Acesso negado.';
             this.statusType = 'error';
           } else {
-            this.statusMessage = error.response.data.message || 'Erro ao fazer login. Tente novamente.';
+            this.statusMessage = error.response.data.message || 'Erro ao fazer login.';
             this.statusType = 'error';
           }
         } else if (error.request) {
-          console.error('❌ Erro de rede:', error.request);
-          this.statusMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          this.statusMessage = 'Erro de conexão. Verifique sua internet.';
           this.statusType = 'error';
         } else {
-          console.error('❌ Erro desconhecido:', error.message);
-          this.statusMessage = 'Erro ao processar requisição. Tente novamente.';
+          this.statusMessage = 'Erro ao processar requisição.';
           this.statusType = 'error';
         }
         
@@ -284,7 +254,6 @@ export default {
     }
   },
   mounted() {
-    // Limpar qualquer token antigo ao carregar a página de login
     if (this.$route.query.logout === 'true') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_type');
@@ -293,7 +262,6 @@ export default {
       this.statusType = 'success';
     }
     
-    // Recuperar email se remember me estava ativo
     const rememberedEmail = localStorage.getItem('remember_email');
     if (rememberedEmail) {
       this.form.email = rememberedEmail;
@@ -411,7 +379,7 @@ export default {
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .login-header h2 {
@@ -423,38 +391,6 @@ export default {
 .login-header p {
   color: #666;
   font-size: 14px;
-}
-
-.user-type-toggle {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 25px;
-  background: #f5f5f5;
-  padding: 5px;
-  border-radius: 12px;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 12px 20px;
-  border: none;
-  background: transparent;
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.toggle-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.toggle-btn.active {
-  background: linear-gradient(135deg, #ff0000ff 0%, #ffd900ff 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .status-message {
@@ -634,10 +570,6 @@ export default {
 
   .logo {
     font-size: 36px;
-  }
-
-  .user-type-toggle {
-    flex-direction: column;
   }
 }
 </style>

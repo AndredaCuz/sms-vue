@@ -8,7 +8,7 @@
         </button>
         <router-link to="/dashboard" class="brand-logo">
           <i class="fas fa-message" style="font-size: 1.5rem; color: var(--primary);"></i>
-          <span class="brand-name">DEV SMS</span>
+          <span class="brand-name">SMS Manager</span>
         </router-link>
       </div>
 
@@ -98,49 +98,24 @@
                 <div class="profile-role" v-if="userRole">{{ userRole }}</div>
               </div>
             </div>
-            
             <div class="dropdown-divider"></div>
-            
             <router-link to="/perfil" class="dropdown-item" @click="showProfile = false">
               <i class="fas fa-user"></i>
               Meu Perfil
             </router-link>
-            
             <router-link to="/configuracoes" class="dropdown-item" @click="showProfile = false">
               <i class="fas fa-cog"></i>
               Configurações
             </router-link>
-
-            <!-- 🔧 OPÇÕES DE ADMIN - AGRUPADAS EM TEMPLATE -->
-            <template v-if="isUserAdmin">
-              <div class="dropdown-divider"></div>
-              
-              <!--<router-link 
-                to="/lista_empresa" 
-                class="dropdown-item" 
-                @click="showProfile = false"
-              >
-                <i class="fas fa-building"></i>
-                Empresa Adm
-              </router-link>
-              -->
-              <router-link 
-                to="/admpainel" 
-                class="dropdown-item" 
-                @click="showProfile = false"
-              >
-                <i class="fas fa-chart-line"></i>
-                Painel Admin
-              </router-link>
-            </template>
-
+            <router-link to="/lista_empresa" class="dropdown-item" @click="showProfile = false">
+              <i class="fas fa-wallet"></i>
+              Empresa Adm
+            </router-link>
             <div class="dropdown-divider"></div>
-            
             <router-link to="/ajuda" class="dropdown-item" @click="showProfile = false">
               <i class="fas fa-question-circle"></i>
               Ajuda & Suporte
             </router-link>
-            
             <button class="dropdown-item" @click="handleLogout" :disabled="isLoggingOut">
               <i :class="isLoggingOut ? 'fas fa-spinner fa-spin' : 'fas fa-sign-out-alt'"></i>
               {{ isLoggingOut ? 'Saindo...' : 'Sair' }}
@@ -221,12 +196,10 @@ export default {
       if (!this.user) return 'Usuário';
       return this.user.name || this.user.admin_name || this.user.company_name || 'Usuário';
     },
-    
     userEmail() {
       if (!this.user) return '';
       return this.user.email || this.user.admin_email || this.user.company_email || '';
     },
-    
     userAvatar() {
       if (!this.user) {
         return 'https://ui-avatars.com/api/?name=User&background=F59E0B&color=fff&size=128';
@@ -241,7 +214,6 @@ export default {
       const name = this.userName.replace(/[^a-zA-Z\s]/g, '');
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F59E0B&color=fff&size=128`;
     },
-    
     userRole() {
       if (!this.user) return '';
       
@@ -254,72 +226,18 @@ export default {
       
       return this.user.role || '';
     },
-    
     formattedCredits() {
       if (!this.credits && this.credits !== 0) return '0';
       return this.credits.toLocaleString('pt-AO');
-    },
-
-    // 🔧 CORRIGIDO: Verificação consistente com o router
-    isUserAdmin() {
-      // 1. PRIMEIRO: Verificar user_type do localStorage (definido no login)
-      const userType = localStorage.getItem('user_type');
-      console.log('🔍 [Navbar] user_type:', userType);
-      
-      if (userType === 'admin') {
-        console.log('✅ [Navbar] É admin pelo user_type');
-        return true;
-      }
-      
-      // 2. SEGUNDO: Verificar nos dados do usuário (se já carregados)
-      if (!this.user) {
-        console.log('⏳ [Navbar] Dados do usuário ainda não carregados');
-        return false;
-      }
-      
-      // Verificar várias possibilidades de campo de role
-      const userRole = this.user.role || this.user.tipo || this.user.user_type || 
-                       this.user.level || this.user.type || this.user.is_admin;
-      
-      console.log('🔍 [Navbar] userRole nos dados:', userRole);
-      
-      // 🔧 CORRIGIDO: Incluir super_admin na verificação
-      const isAdminRole = userRole === 'admin' || 
-                          userRole === 'administrator' || 
-                          userRole === 'Admin' ||
-                          userRole === 'super_admin' ||  // ✅ ADICIONADO
-                          userRole === 'Super Admin' ||   // ✅ ADICIONADO
-                          userRole === true ||
-                          userRole === 1;
-      
-      console.log('🔍 [Navbar] É admin pelo role:', isAdminRole);
-      return isAdminRole;
     }
   },
-  
-  // 🔧 NOVO: Watchers para debug
-  watch: {
-    isUserAdmin(newVal, oldVal) {
-      console.log('🔄 [Navbar] isUserAdmin mudou de', oldVal, 'para', newVal);
-    },
-    user(newVal) {
-      console.log('🔄 [Navbar] Dados do usuário atualizados:', newVal);
-    }
-  },
-  
   methods: {
-    // 🔧 ATUALIZADO: Método de buscar dados com mais logs
     async fetchUserData() {
       this.isLoading = true;
       const token = localStorage.getItem('auth_token');
-      const userType = localStorage.getItem('user_type');
-      
-      console.log('🔍 [Navbar] Carregando dados do usuário...');
-      console.log('🔍 [Navbar] Token:', token ? 'Presente' : 'Ausente');
-      console.log('🔍 [Navbar] User Type:', userType);
       
       if (!token) {
-        console.error('❌ [Navbar] Token não encontrado');
+        console.error('Token não encontrado');
         this.isLoading = false;
         
         // Não redirecionar imediatamente, dar tempo para o login completar
@@ -345,19 +263,15 @@ export default {
         // Extrair créditos se disponível
         this.credits = this.user.credits || this.user.balance || this.user.sms_credits || 0;
         
-        console.log('✅ [Navbar] Dados do usuário carregados:', this.user);
-        console.log('✅ [Navbar] É Admin?', this.isUserAdmin);
-        
-        // 🔧 FORÇAR ATUALIZAÇÃO DA INTERFACE
-        this.$forceUpdate();
+        console.log('Dados do usuário carregados:', this.user);
         
       } catch (error) {
-        console.error('❌ [Navbar] Erro ao buscar dados do usuário:', error);
+        console.error('Erro ao buscar dados do usuário:', error);
         
         if (error.response) {
           if (error.response.status === 401 || error.response.status === 403) {
             // Token inválido ou expirado
-            console.log('⛔ [Navbar] Token inválido, limpando sessão');
+            console.log('Token inválido, limpando sessão');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_type');
             localStorage.removeItem('user_data');
@@ -369,16 +283,16 @@ export default {
               }, 500);
             }
           } else {
-            console.error('❌ [Navbar] Erro da API:', error.response.data);
+            console.error('Erro da API:', error.response.data);
             
             // Tentar usar dados do localStorage como fallback
             const userData = localStorage.getItem('user_data');
             if (userData) {
               try {
                 this.user = JSON.parse(userData);
-                console.log('✅ [Navbar] Usando dados do cache:', this.user);
+                console.log('Usando dados do cache:', this.user);
               } catch (e) {
-                console.error('❌ [Navbar] Erro ao parsear dados do cache');
+                console.error('Erro ao parsear dados do cache');
               }
             }
           }
@@ -388,7 +302,7 @@ export default {
       }
     },
     
-  async handleLogout() {
+    async handleLogout() {
       if (this.isLoggingOut) return;
       
       // Confirmar logout
@@ -400,6 +314,7 @@ export default {
       const token = localStorage.getItem('auth_token');
 
       try {
+        // Chamar API de logout (corrigindo o endpoint - logout não logut)
         await axios.post('https://api.devsms.online/api/v1/auth/logout', {}, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -407,26 +322,21 @@ export default {
           }
         });
         
-        console.log('✅ [Navbar] Logout realizado com sucesso');
+        console.log('Logout realizado com sucesso');
         
       } catch (error) {
-        console.error('❌ [Navbar] Erro ao fazer logout:', error);
+        console.error('Erro ao fazer logout:', error);
         // Mesmo com erro, vamos limpar os dados locais
       } finally {
-        // 🔧 CORRIGIDO: Remover listeners antes de limpar dados
-        window.removeEventListener('auth-changed', this.handleAuthChanged);
-        document.removeEventListener('click', this.handleClickOutside);
-        
         // Limpar dados locais
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_type');
         localStorage.removeItem('user_data');
         
-        this.isLoggingOut = false;
+        // Redirecionar para login
+        this.$router.push('/login');
         
-        // 🔧 ATUALIZADO: Redirecionar sem disparar evento
-        console.log('✅ [Navbar] Redirecionando para home após logout...');
-        window.location.href = '/';
+        this.isLoggingOut = false;
       }
     },
     
@@ -456,6 +366,7 @@ export default {
     handleNotificationClick(notification) {
       notification.read = true;
       this.unreadNotifications = this.notifications.filter(n => !n.read).length;
+      // Adicione navegação ou ação específica aqui
     },
     
     handleClickOutside(event) {
@@ -467,28 +378,15 @@ export default {
       }
     }
   },
-  
-  // 🔧 ATUALIZADO: Lifecycle hooks
   mounted() {
-    console.log('🚀 [Navbar] Componente montado');
-    
     // Buscar dados do usuário ao montar o componente
     this.fetchUserData();
-    
-    // 🔧 NOVO: Listener para atualizar quando o login for feito
-    window.addEventListener('auth-changed', () => {
-      console.log('🔄 [Navbar] Auth changed, recarregando dados...');
-      this.fetchUserData();
-    });
     
     // Adicionar listener para fechar dropdowns ao clicar fora
     document.addEventListener('click', this.handleClickOutside);
   },
-  
   beforeUnmount() {
-    console.log('👋 [Navbar] Componente desmontado');
     document.removeEventListener('click', this.handleClickOutside);
-    window.removeEventListener('auth-changed', this.fetchUserData);
   }
 };
 </script>

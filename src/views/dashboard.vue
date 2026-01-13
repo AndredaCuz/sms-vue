@@ -34,24 +34,30 @@
           </div>
           <div class="card-body">
             <div style="display: grid; gap: 1rem;">
-              <router-link to="/enviarsms" class="btn btn-accent btn-lg w-100">
-                <i class="fas fa-paper-plane"></i> Enviar SMS
-              </router-link>
-              <router-link to="/meucontatos" class="btn btn-primary w-100">
-                <i class="fas fa-user-plus"></i> Meus Contactos
-              </router-link>
-              <router-link to="/verplanos" class="btn btn-outline w-100">
-                <i class="fas fa-list-alt me-2"></i> Ver Planos
-              </router-link>
-              <router-link to="/credito" class="btn btn-success w-100">
-                <i class="fas fa-file-signature me-2"></i> Assinuturas
-              </router-link>
-              <router-link to="/categorias" class="btn btn-outline w-100">
-                <i class="fas fa-file-signature me-2"></i> Categorias
-              </router-link>
-              <router-link to="/lista_template" class="btn btn-outline w-100">
-                <i class="fas fa-file-signature me-2"></i> Templates 
-              </router-link>
+             
+<router-link to="/meucontatos" class="btn btn-primary w-100 mb-2">
+  <i class="fas fa-address-book me-2"></i> Meus Contactos
+</router-link>
+
+<router-link to="/verplanos" class="btn btn-dark w-100 mb-2 text-white">
+  <i class="fas fa-box-open me-2"></i> Ver Planos
+</router-link>
+
+<router-link to="/credito" class="btn btn-success w-100 mb-2">
+  <i class="fas fa-credit-card me-2"></i> Assinaturas
+</router-link>
+
+<router-link to="/categorias" class="btn btn-warning w-100 mb-2">
+  <i class="fas fa-tags me-2"></i> Categorias
+</router-link>
+
+<router-link to="/lista_template" class="btn btn-purple w-100 mb-2 text-white">
+  <i class="fas fa-file-alt me-2"></i> Templates
+</router-link>
+
+<router-link to="/lista_black" class="btn btn-danger w-100 mb-2">
+  <i class="fas fa-ban me-2"></i> Lista Negra
+</router-link>
             </div>
           </div>
         </div>
@@ -827,5 +833,68 @@ export default {
   .clients-stats {
     grid-template-columns: 1fr;
   }
+}
+
+/* Se o Bootstrap não estiver funcionando bem */
+.btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: white !important;
+}
+
+.btn-dark {
+  background-color: #212529 !important;
+  border-color: #212529 !important;
+  color: white !important;
+}
+
+.btn-success {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: white !important;
+}
+
+.btn-warning {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.btn-purple {
+  background-color: #6f42c1 !important;
+  border-color: #6f42c1 !important;
+  color: white !important;
+}
+
+.btn-purple:hover {
+  background-color: #5a32a3 !important;
+  border-color: #5a32a3 !important;
+}
+
+.btn-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: white !important;
+}
+
+/* Estilos para todos os botões */
+.w-100 {
+  width: 100% !important;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem !important;
+}
+
+.text-white {
+  color: white !important;
+}
+
+.text-dark {
+  color: #212529 !important;
+}
+
+.me-2 {
+  margin-right: 0.5rem !important;
 }
 </style>

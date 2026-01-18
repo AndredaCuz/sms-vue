@@ -228,7 +228,7 @@
             </div>
             <h4 class="feature-title">Relatórios de Consumo</h4>
             <p class="feature-description">Análises detalhadas do seu consumo de SMS</p>
-            <router-link to="/relatorios-consumo" class="btn btn-primary w-100">
+            <router-link to="/hist_consumo" class="btn btn-primary w-100">
               <i class="fas fa-chart-line"></i> Ver Relatórios
             </router-link>
           </div>
@@ -242,7 +242,7 @@
             </div>
             <h4 class="feature-title">Análise de Campanhas</h4>
             <p class="feature-description">Métricas detalhadas de cada campanha</p>
-            <router-link to="/campanhas" class="btn btn-primary w-100">
+            <router-link to="/resu_campanha" class="btn btn-primary w-100">
               <i class="fas fa-chart-bar"></i> Ver Análises
             </router-link>
           </div>
@@ -294,7 +294,7 @@
 
 <script>
 import axios from 'axios';
-import navegacao from '../components/navegacao.vue';
+import navegacao from '../../components/navegacao.vue';
 
 export default {
   name: 'Dashboard',

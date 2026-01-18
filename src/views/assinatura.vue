@@ -1,4 +1,3 @@
-```vue
 <template>
   <navegacao/>
   
@@ -288,7 +287,7 @@
           <div class="modal-header-premium">
             <div>
               <h3 class="modal-title">Adicionar Créditos</h3>
-              <p class="modal-subtitle">Compre créditos adicionais de SMS</p>
+              <p class="modal-subtitle">Compre créditos adicionais de SMS ou resgate um voucher</p>
             </div>
             <button class="btn-close-modal" @click="closeAddCreditsModal">
               <i class="fas fa-times"></i>
@@ -296,48 +295,101 @@
           </div>
 
           <div class="modal-body">
-            <div class="credits-options">
+            <!-- Tabs de Navegação -->
+            <div class="credits-tabs">
               <button 
-                v-for="option in creditOptions" 
-                :key="option.value"
-                class="credit-option"
-                :class="{ active: creditsQuantity === option.value }"
-                @click="creditsQuantity = option.value"
+                class="credits-tab" 
+                :class="{ active: creditsTab === 'purchase' }"
+                @click="creditsTab = 'purchase'"
               >
-                <div class="credit-amount">{{ option.label }}</div>
-                <div class="credit-price">{{ formatPrice(option.price) }}</div>
+                <i class="fas fa-shopping-cart"></i>
+                Comprar Créditos
+              </button>
+              <button 
+                class="credits-tab" 
+                :class="{ active: creditsTab === 'voucher' }"
+                @click="creditsTab = 'voucher'"
+              >
+                <i class="fas fa-ticket-alt"></i>
+                Resgatar Voucher
               </button>
             </div>
 
-            <div class="custom-quantity">
-              <label class="input-label">Ou insira uma quantidade personalizada</label>
-              <input 
-                type="number" 
-                v-model.number="creditsQuantity" 
-                class="input-field"
-                placeholder="Digite a quantidade"
-                min="1"
-              >
-            </div>
-
-            <div class="credits-description">
-              <label class="input-label">Descrição (opcional)</label>
-              <textarea 
-                v-model="creditsDescription" 
-                class="input-textarea"
-                placeholder="Ex: Compra para campanha de natal"
-                rows="3"
-              ></textarea>
-            </div>
-
-            <div class="credits-summary">
-              <div class="summary-row">
-                <span>Quantidade:</span>
-                <strong>{{ creditsQuantity.toLocaleString('pt-AO') }} SMS</strong>
+            <!-- Conteúdo da Tab Comprar Créditos -->
+            <div v-if="creditsTab === 'purchase'" class="tab-content">
+              <div class="credits-options">
+                <button 
+                  v-for="option in creditOptions" 
+                  :key="option.value"
+                  class="credit-option"
+                  :class="{ active: creditsQuantity === option.value }"
+                  @click="creditsQuantity = option.value"
+                >
+                  <div class="credit-amount">{{ option.label }}</div>
+                  <div class="credit-price">{{ formatPrice(option.price) }}</div>
+                </button>
               </div>
-              <div class="summary-row total">
-                <span>Total a Pagar:</span>
-                <strong>{{ formatPrice(calculateCreditsPrice()) }}</strong>
+
+              <div class="custom-quantity">
+                <label class="input-label">Ou insira uma quantidade personalizada</label>
+                <input 
+                  type="number" 
+                  v-model.number="creditsQuantity" 
+                  class="input-field"
+                  placeholder="Digite a quantidade"
+                  min="1"
+                >
+              </div>
+
+              <div class="credits-description">
+                <label class="input-label">Descrição (opcional)</label>
+                <textarea 
+                  v-model="creditsDescription" 
+                  class="input-textarea"
+                  placeholder="Ex: Compra para campanha de natal"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="credits-summary">
+                <div class="summary-row">
+                  <span>Quantidade:</span>
+                  <strong>{{ creditsQuantity.toLocaleString('pt-AO') }} SMS</strong>
+                </div>
+                <div class="summary-row total">
+                  <span>Total a Pagar:</span>
+                  <strong>{{ formatPrice(calculateCreditsPrice()) }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Conteúdo da Tab Resgatar Voucher -->
+            <div v-else class="tab-content">
+              <div class="voucher-section">
+                <div class="info-box voucher-info">
+                  <i class="fas fa-gift"></i>
+                  <div>
+                    <strong>Resgate seu Voucher</strong>
+                    <p>Digite o código do voucher e clique em resgatar para adicionar seus créditos de SMS</p>
+                  </div>
+                </div>
+
+                <div class="voucher-input-section">
+                  <label class="input-label">Código do Voucher</label>
+                  <input 
+                    type="text" 
+                    v-model="voucherCode" 
+                    class="input-field"
+                    placeholder="Ex: DEV2024-ABC123"
+                    :disabled="isProcessingVoucher"
+                    @keyup.enter="redeemVoucher"
+                  >
+                </div>
+
+                <div v-if="voucherError" class="error-message">
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>{{ voucherError }}</span>
+                </div>
               </div>
             </div>
 
@@ -346,6 +398,7 @@
                 <i class="fas fa-times"></i> Cancelar
               </button>
               <button 
+                v-if="creditsTab === 'purchase'"
                 type="button" 
                 class="btn-submit" 
                 @click="confirmAddCredits"
@@ -353,6 +406,16 @@
               >
                 <i class="fas" :class="isProcessing ? 'fa-spinner fa-spin' : 'fa-shopping-cart'"></i>
                 {{ isProcessing ? 'Processando...' : 'Comprar Créditos' }}
+              </button>
+              <button 
+                v-else
+                type="button" 
+                class="btn-submit" 
+                @click="redeemVoucher"
+                :disabled="!voucherCode || isProcessingVoucher"
+              >
+                <i class="fas" :class="isProcessingVoucher ? 'fa-spinner fa-spin' : 'fa-gift'"></i>
+                {{ isProcessingVoucher ? 'Processando...' : 'Resgatar Voucher' }}
               </button>
             </div>
           </div>
@@ -531,6 +594,13 @@ export default {
       paymentMethod: 'bank_transfer',
       creditsQuantity: 100,
       creditsDescription: '',
+      
+      // Propriedades para voucher
+      creditsTab: 'purchase',
+      voucherCode: '',
+      voucherError: '',
+      isProcessingVoucher: false,
+      
       balanceData: {
         sms_available: 0,
         sms_used: 0,
@@ -678,6 +748,60 @@ export default {
       }
     },
 
+    async redeemVoucher() {
+      if (!this.voucherCode.trim()) {
+        this.voucherError = 'Por favor, insira um código de voucher';
+        return;
+      }
+
+      this.isProcessingVoucher = true;
+      this.voucherError = '';
+
+      try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await axios.post('https://api.devsms.online/api/v1/vouchers/redeem', {
+          code: this.voucherCode.trim()
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        // Sucesso no resgate
+        const creditsAdded = response.data.data?.credits || response.data.data?.sms_quantity || 'seus';
+        this.showToastNotification('success', 'Sucesso!', `Voucher resgatado! ${creditsAdded} créditos adicionados`);
+        
+        // Limpar formulário
+        this.voucherCode = '';
+        this.voucherError = '';
+        
+        // Fechar modal e atualizar saldo após 1.5 segundos
+        setTimeout(() => {
+          this.closeAddCreditsModal();
+          this.fetchBalance();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Erro ao resgatar voucher:', error);
+        
+        if (error.response?.status === 404) {
+          this.voucherError = 'Voucher não encontrado ou código inválido';
+        } else if (error.response?.status === 400) {
+          this.voucherError = error.response?.data?.message || 'Voucher inválido';
+        } else if (error.response?.status === 410) {
+          this.voucherError = 'Este voucher já foi utilizado';
+        } else if (error.response?.status === 422) {
+          this.voucherError = error.response?.data?.message || 'Voucher expirado ou inválido';
+        } else {
+          this.voucherError = error.response?.data?.message || 'Erro ao resgatar o voucher. Tente novamente.';
+        }
+      } finally {
+        this.isProcessingVoucher = false;
+      }
+    },
+
     async confirmChange() {
       this.isProcessing = true;
 
@@ -719,11 +843,16 @@ export default {
     openAddCreditsModal() {
       this.creditsQuantity = 100;
       this.creditsDescription = '';
+      this.creditsTab = 'purchase';
+      this.voucherCode = '';
+      this.voucherError = '';
       this.showAddCreditsModal = true;
     },
 
     closeAddCreditsModal() {
       this.showAddCreditsModal = false;
+      this.voucherCode = '';
+      this.voucherError = '';
     },
 
     openHistoryModal() {
@@ -825,7 +954,6 @@ export default {
       });
     },
 
-
     formatPrice(price) {
       if (!price) return 'Grátis';
       return new Intl.NumberFormat('pt-AO', {
@@ -904,7 +1032,6 @@ export default {
 </script>
 
 <style scoped>
-/* ... (CSS continua igual ao anterior) ... */
 .page-container { 
   padding: 2rem; 
   max-width: 1400px; 
@@ -1022,15 +1149,16 @@ export default {
   font-size: 0.5rem;
 }
 
-.auto-renew-badge {
+.warning-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(245, 158, 11, 0.2);
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
+  color: #f59e0b;
 }
 
 .subscription-actions-quick {
@@ -1065,6 +1193,12 @@ export default {
   color: white;
 }
 
+.btn-quick-action.tertiary {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-color: white;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1095,8 +1229,8 @@ export default {
 
 .sms-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .used-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.billing-icon { background: linear-gradient(135deg, #10b981, #059669); }
-.price-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.total-icon { background: linear-gradient(135deg, #ec4899, #db2777); }
+.percentage-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
 
 .stat-content {
   flex: 1;
@@ -1112,6 +1246,42 @@ export default {
 .stat-label {
   font-size: 0.875rem;
   color: #6b7280;
+}
+
+.progress-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 3rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.progress-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
 }
 
 .section-title {
@@ -1308,10 +1478,9 @@ export default {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.btn-select-plan.current {
-  background: #e5e7eb;
-  color: #6b7280;
-  cursor: not-allowed;
+.btn-select-plan.current-plan {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
 }
 
 .btn-select-plan.upgrade {
@@ -1324,7 +1493,7 @@ export default {
   color: white;
 }
 
-.btn-select-plan:not(.current):not(.upgrade):not(.downgrade) {
+.btn-select-plan:not(.current-plan):not(.upgrade):not(.downgrade) {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
 }
@@ -1398,6 +1567,244 @@ export default {
 
 .modal-body {
   padding: 2rem;
+}
+
+.renew-plan-info {
+  margin-bottom: 2rem;
+}
+
+.plan-info-card {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 2rem;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.plan-info-card h4 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.plan-info-card p {
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+}
+
+.plan-price-large {
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+
+.payment-method-section {
+  margin-bottom: 1.5rem;
+}
+
+.input-label {
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.input-select,
+.input-field,
+.input-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.input-select:focus,
+.input-field:focus,
+.input-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.payment-instructions {
+  margin-bottom: 2rem;
+}
+
+.info-box {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+}
+
+.info-box i {
+  color: #3b82f6;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.info-box strong {
+  display: block;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.info-box p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.voucher-info {
+  margin-bottom: 1.5rem;
+}
+
+.credits-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.credits-tab {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.credits-tab:hover {
+  color: #667eea;
+}
+
+.credits-tab.active {
+  color: #667eea;
+}
+
+.credits-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #667eea;
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+.voucher-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.voucher-input-section {
+  margin-bottom: 0;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.error-message i {
+  flex-shrink: 0;
+}
+
+.credits-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.credit-option {
+  padding: 1.5rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.credit-option:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.credit-option.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea10, #764ba210);
+}
+
+.credit-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.credit-price {
+  font-size: 0.875rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.custom-quantity {
+  margin-bottom: 1.5rem;
+}
+
+.credits-description {
+  margin-bottom: 1.5rem;
+}
+
+.credits-summary {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  color: #4b5563;
+}
+
+.summary-row.total {
+  border-top: 2px solid #e5e7eb;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  font-size: 1.125rem;
+}
+
+.summary-row strong {
+  color: #1f2937;
+  font-weight: 700;
 }
 
 .plan-comparison {
@@ -1537,6 +1944,111 @@ export default {
   cursor: not-allowed;
 }
 
+.full-width {
+  width: 100%;
+}
+
+.modal-large {
+  max-width: 800px;
+}
+
+.loading-container-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+}
+
+.spinner-small {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.history-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.3s;
+}
+
+.history-item:hover {
+  background: #f9fafb;
+}
+
+.history-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.icon-credit {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.icon-debit {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.history-content {
+  flex: 1;
+}
+
+.history-title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.history-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.history-amount {
+  font-weight: 700;
+  font-size: 1.125rem;
+  white-space: nowrap;
+}
+
+.history-amount.credit {
+  color: #10b981;
+}
+
+.history-amount.debit {
+  color: #f59e0b;
+}
+
 /* TOAST NOTIFICATION */
 .toast-notification {
   position: fixed;
@@ -1666,353 +2178,23 @@ export default {
     left: 1rem;
     max-width: none;
   }
-}
 
-/* Novos estilos adicionais */
-.btn-quick-action.tertiary {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border-color: white;
-}
-
-.total-icon { background: linear-gradient(135deg, #ec4899, #db2777); }
-.percentage-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
-
-.progress-section {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 3rem;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 600;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 12px;
-  background: #e5e7eb;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #10b981, #059669);
-  border-radius: 10px;
-  transition: width 0.5s ease;
-}
-
-.progress-fill.progress-danger {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
-}
-
-.warning-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(245, 158, 11, 0.2);
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #f59e0b;
-}
-
-.btn-select-plan.current-plan {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  cursor: pointer;
-}
-
-.renew-plan-info {
-  margin-bottom: 2rem;
-}
-
-.plan-info-card {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  padding: 2rem;
-  border-radius: 15px;
-  text-align: center;
-}
-
-.plan-info-card h4 {
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem 0;
-}
-
-.plan-info-card p {
-  margin: 0 0 1rem 0;
-  opacity: 0.9;
-}
-
-.plan-price-large {
-  font-size: 2.5rem;
-  font-weight: 800;
-}
-
-.payment-method-section {
-  margin-bottom: 1.5rem;
-}
-
-.input-label {
-  display: block;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.input-select,
-.input-field,
-.input-textarea {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-.input-select:focus,
-.input-field:focus,
-.input-textarea:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.payment-instructions {
-  margin-bottom: 2rem;
-}
-
-.info-box {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 10px;
-}
-
-.info-box i {
-  color: #3b82f6;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.info-box strong {
-  display: block;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.info-box p {
-  margin: 0;
-  color: #4b5563;
-  font-size: 0.875rem;
-}
-
-.credits-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.credit-option {
-  padding: 1.5rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-align: center;
-}
-
-.credit-option:hover {
-  border-color: #667eea;
-  transform: translateY(-2px);
-}
-
-.credit-option.active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea10, #764ba210);
-}
-
-.credit-amount {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
-}
-
-.credit-price {
-  font-size: 0.875rem;
-  color: #667eea;
-  font-weight: 600;
-}
-
-.custom-quantity {
-  margin-bottom: 1.5rem;
-}
-
-.credits-description {
-  margin-bottom: 1.5rem;
-}
-
-.credits-summary {
-  background: #f9fafb;
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.75rem 0;
-  color: #4b5563;
-}
-
-.summary-row.total {
-  border-top: 2px solid #e5e7eb;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  font-size: 1.125rem;
-}
-
-.summary-row strong {
-  color: #1f2937;
-  font-weight: 700;
-}
-
-.modal-large {
-  max-width: 800px;
-}
-
-.loading-container-small {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  gap: 1rem;
-}
-
-.spinner-small {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: #6b7280;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.history-list {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  transition: background 0.3s;
-}
-
-.history-item:hover {
-  background: #f9fafb;
-}
-
-.history-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: white;
-  flex-shrink: 0;
-}
-
-.icon-credit {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.icon-debit {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.history-content {
-  flex: 1;
-}
-
-.history-title {
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.history-date {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.history-amount {
-  font-weight: 700;
-  font-size: 1.125rem;
-  white-space: nowrap;
-}
-
-.history-amount.credit {
-  color: #10b981;
-}
-
-.history-amount.debit {
-  color: #f59e0b;
-}
-
-.full-width {
-  width: 100%;
-}
-
-@media (max-width: 768px) {
   .credits-options {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .history-item {
     flex-wrap: wrap;
   }
-  
+
   .history-amount {
     width: 100%;
     text-align: right;
     margin-top: 0.5rem;
+  }
+
+  .credits-tabs {
+    flex-direction: row;
   }
 }
 </style>

@@ -4,16 +4,16 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 // Views
 import Home from '../views/Home.vue'
 import Login from '../views/autenticacao/login.vue'
-import Dashboard from '../views/Dashboard.vue'
+import Dashboard from '../views/dashboard/dashboard.vue'
 import Register from '../views/autenticacao/register.vue'
 import Meucontatos from '../views/clientes/meucontatos.vue'
 import Criarcontato from '../views/clientes/criarcontato.vue'
 import Atualizar from '../views/clientes/Atualizar.vue'
 import Enviarsms from '../views/Enviarsms.vue'
 import Admpainel from '../views/empresa_adm/admpainel.vue'
-import Credito from '../views/credito.vue'
+import Credito from '../views/assinatura.vue'
 import Gerir from '../views/adm/Gerir.vue'
-import Historicosms from '../views/Historicosms.vue'
+import Historicosms from '../views/dashboard/historicosms.vue'
 import Verplanos from '../views/verplanos.vue'
 import Categorias from '../views/Categorias.vue'
 import Lista_template from '../views/template/lista_template.vue'
@@ -26,6 +26,10 @@ import Lista_planos from '../views/empresa_adm/Lista_planos.vue'
 import Atualizar_planos from '../views/empresa_adm/Atualizar_planos.vue'
 import Lista_black from '../views/blacklist/Lista_black.vue'
 import Criar_black from '../views/blacklist/Criar_black.vue'
+import Listar_voucher from '../views/empresa_adm/Listar_voucher.vue'
+import Criar_voucher from '../views/empresa_adm/Criar_voucher.vue'
+import Hist_consumo from '../views/dashboard/Hist_consumo.vue'
+import Resu_camapanha from '../views/dashboard/Resu_camapanha.vue'
 
 // Sistema de autenticação
 const auth = {
@@ -159,6 +163,18 @@ const routes = [
     component: Historicosms,
     meta: { requiresAuth: true }
   },
+    { 
+    path: '/hist_consumo', 
+    name: 'Hist_consumo', 
+    component: Hist_consumo,
+    meta: { requiresAuth: true }
+  },
+  { 
+    path: '/resu_campanha', 
+    name: 'Resu_campanha', 
+    component: Resu_camapanha,
+    meta: { requiresAuth: true }
+  },
   { 
     path: '/verplanos', 
     name: 'Verplanos', 
@@ -244,6 +260,19 @@ const routes = [
     path: '/atualizar_planos/:id', 
     name: 'Atualizar_planos', 
     component: Atualizar_planos,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+
+  { 
+    path: '/listar_voucher', 
+    name: 'Listar_voucher', 
+    component: Listar_voucher,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  { 
+    path: '/criar_voucher', 
+    name: 'Criar_voucher', 
+    component: Criar_voucher,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   

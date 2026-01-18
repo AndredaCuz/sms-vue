@@ -357,7 +357,7 @@
 
 <script>
 import axios from 'axios';
-import navegacao from '../components/navegacao.vue';
+import navegacao from '../../components/navegacao.vue';
 
 export default {
   name: 'SmsHistory',

@@ -30,11 +30,11 @@
 
       <!-- Actions -->
       <div class="navbar-actions" v-else>
-        <!-- Créditos -->
-        <div class="credits-display">
-          <i class="fas fa-wallet"></i>
-          <span class="credits-amount">{{ formattedCredits }}</span>
-          <span class="credits-label">créditos</span>
+        <!-- Créditos de SMS Disponíveis -->
+        <div class="credits-display" v-if="smsCredits !== null">
+          <i class="fas fa-sms"></i>
+          <span class="credits-amount">{{ formattedSmsCredits }}</span>
+          <span class="credits-label">SMS disponíveis</span>
         </div>
 
         <!-- Notificações -->
@@ -96,6 +96,11 @@
                 <div class="profile-name-large">{{ userName }}</div>
                 <div class="profile-email">{{ userEmail }}</div>
                 <div class="profile-role" v-if="userRole">{{ userRole }}</div>
+                <!-- Exibir SMS disponíveis no perfil também -->
+                <div class="profile-sms" v-if="smsCredits !== null">
+                  <i class="fas fa-sms"></i>
+                  {{ formattedSmsCredits }} SMS disponíveis
+                </div>
               </div>
             </div>
             
@@ -111,19 +116,16 @@
               Configurações
             </router-link>
 
+            <!-- Link para Gerenciar Créditos -->
+            <router-link to="/credito" class="dropdown-item" @click="showProfile = false">
+              <i class="fas fa-credit-card"></i>
+              Gerenciar Créditos
+            </router-link>
+
             <!-- 🔧 OPÇÕES DE ADMIN - AGRUPADAS EM TEMPLATE -->
             <template v-if="isUserAdmin">
               <div class="dropdown-divider"></div>
               
-              <!--<router-link 
-                to="/lista_empresa" 
-                class="dropdown-item" 
-                @click="showProfile = false"
-              >
-                <i class="fas fa-building"></i>
-                Empresa Adm
-              </router-link>
-              -->
               <router-link 
                 to="/admpainel" 
                 class="dropdown-item" 
@@ -178,10 +180,10 @@ export default {
       
       // Dados do usuário
       user: null,
-      credits: 0,
+      smsCredits: null, // Agora vamos armazenar os créditos de SMS
       unreadNotifications: 3,
       
-      // Notificações (temporário - pode vir da API depois)
+      // Notificações
       notifications: [
         {
           id: 1,
@@ -232,12 +234,10 @@ export default {
         return 'https://ui-avatars.com/api/?name=User&background=F59E0B&color=fff&size=128';
       }
       
-      // Se tiver avatar customizado na API
       if (this.user.avatar) {
         return this.user.avatar;
       }
       
-      // Gerar avatar com iniciais
       const name = this.userName.replace(/[^a-zA-Z\s]/g, '');
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F59E0B&color=fff&size=128`;
     },
@@ -255,74 +255,42 @@ export default {
       return this.user.role || '';
     },
     
-    formattedCredits() {
-      if (!this.credits && this.credits !== 0) return '0';
-      return this.credits.toLocaleString('pt-AO');
+    formattedSmsCredits() {
+      if (this.smsCredits === null) return '0';
+      return this.smsCredits.toLocaleString('pt-AO');
     },
 
-    // 🔧 CORRIGIDO: Verificação consistente com o router
     isUserAdmin() {
-      // 1. PRIMEIRO: Verificar user_type do localStorage (definido no login)
       const userType = localStorage.getItem('user_type');
-      console.log('🔍 [Navbar] user_type:', userType);
-      
       if (userType === 'admin') {
-        console.log('✅ [Navbar] É admin pelo user_type');
         return true;
       }
       
-      // 2. SEGUNDO: Verificar nos dados do usuário (se já carregados)
       if (!this.user) {
-        console.log('⏳ [Navbar] Dados do usuário ainda não carregados');
         return false;
       }
       
-      // Verificar várias possibilidades de campo de role
       const userRole = this.user.role || this.user.tipo || this.user.user_type || 
                        this.user.level || this.user.type || this.user.is_admin;
       
-      console.log('🔍 [Navbar] userRole nos dados:', userRole);
-      
-      // 🔧 CORRIGIDO: Incluir super_admin na verificação
-      const isAdminRole = userRole === 'admin' || 
-                          userRole === 'administrator' || 
-                          userRole === 'Admin' ||
-                          userRole === 'super_admin' ||  // ✅ ADICIONADO
-                          userRole === 'Super Admin' ||   // ✅ ADICIONADO
-                          userRole === true ||
-                          userRole === 1;
-      
-      console.log('🔍 [Navbar] É admin pelo role:', isAdminRole);
-      return isAdminRole;
-    }
-  },
-  
-  // 🔧 NOVO: Watchers para debug
-  watch: {
-    isUserAdmin(newVal, oldVal) {
-      console.log('🔄 [Navbar] isUserAdmin mudou de', oldVal, 'para', newVal);
-    },
-    user(newVal) {
-      console.log('🔄 [Navbar] Dados do usuário atualizados:', newVal);
+      return userRole === 'admin' || 
+             userRole === 'administrator' || 
+             userRole === 'Admin' ||
+             userRole === 'super_admin' ||
+             userRole === 'Super Admin' ||
+             userRole === true ||
+             userRole === 1;
     }
   },
   
   methods: {
-    // 🔧 ATUALIZADO: Método de buscar dados com mais logs
     async fetchUserData() {
       this.isLoading = true;
       const token = localStorage.getItem('auth_token');
-      const userType = localStorage.getItem('user_type');
-      
-      console.log('🔍 [Navbar] Carregando dados do usuário...');
-      console.log('🔍 [Navbar] Token:', token ? 'Presente' : 'Ausente');
-      console.log('🔍 [Navbar] User Type:', userType);
       
       if (!token) {
-        console.error('❌ [Navbar] Token não encontrado');
+        console.log('Token não encontrado');
         this.isLoading = false;
-        
-        // Não redirecionar imediatamente, dar tempo para o login completar
         setTimeout(() => {
           const tokenCheck = localStorage.getItem('auth_token');
           if (!tokenCheck && this.$route.path !== '/login' && this.$route.path !== '/register') {
@@ -333,53 +301,44 @@ export default {
       }
 
       try {
-        const response = await axios.get('https://api.devsms.online/api/v1/auth/me', {
+        // 1. Buscar dados do usuário
+        const userResponse = await axios.get('https://api.devsms.online/api/v1/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
           }
         });
 
-        this.user = response.data.user || response.data.data || response.data;
+        this.user = userResponse.data.user || userResponse.data.data || userResponse.data;
         
-        // Extrair créditos se disponível
-        this.credits = this.user.credits || this.user.balance || this.user.sms_credits || 0;
+        // 2. Buscar saldo de SMS (créditos)
+        await this.fetchSmsBalance(token);
         
-        console.log('✅ [Navbar] Dados do usuário carregados:', this.user);
-        console.log('✅ [Navbar] É Admin?', this.isUserAdmin);
-        
-        // 🔧 FORÇAR ATUALIZAÇÃO DA INTERFACE
-        this.$forceUpdate();
+        console.log('Dados do usuário carregados:', this.user);
+        console.log('SMS disponíveis:', this.smsCredits);
         
       } catch (error) {
-        console.error('❌ [Navbar] Erro ao buscar dados do usuário:', error);
+        console.error('Erro ao buscar dados do usuário:', error);
         
-        if (error.response) {
-          if (error.response.status === 401 || error.response.status === 403) {
-            // Token inválido ou expirado
-            console.log('⛔ [Navbar] Token inválido, limpando sessão');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_type');
-            localStorage.removeItem('user_data');
-            
-            // Redirecionar apenas se não estiver na tela de login
-            if (this.$route.path !== '/login' && this.$route.path !== '/register') {
-              setTimeout(() => {
-                this.$router.push('/login');
-              }, 500);
-            }
-          } else {
-            console.error('❌ [Navbar] Erro da API:', error.response.data);
-            
-            // Tentar usar dados do localStorage como fallback
-            const userData = localStorage.getItem('user_data');
-            if (userData) {
-              try {
-                this.user = JSON.parse(userData);
-                console.log('✅ [Navbar] Usando dados do cache:', this.user);
-              } catch (e) {
-                console.error('❌ [Navbar] Erro ao parsear dados do cache');
-              }
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_type');
+          localStorage.removeItem('user_data');
+          
+          if (this.$route.path !== '/login' && this.$route.path !== '/register') {
+            setTimeout(() => {
+              this.$router.push('/login');
+            }, 500);
+          }
+        } else {
+          // Tentar usar dados do cache
+          const userData = localStorage.getItem('user_data');
+          if (userData) {
+            try {
+              this.user = JSON.parse(userData);
+              console.log('Usando dados do cache:', this.user);
+            } catch (e) {
+              console.error('Erro ao parsear dados do cache');
             }
           }
         }
@@ -387,11 +346,31 @@ export default {
         this.isLoading = false;
       }
     },
+
+    async fetchSmsBalance(token) {
+      try {
+        const response = await axios.get('https://api.devsms.online/api/v1/subscription/balance', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        const balanceData = response.data.data;
+        // Armazenar os SMS disponíveis
+        this.smsCredits = balanceData.sms_available || 0;
+        
+        console.log('Saldo de SMS carregado:', this.smsCredits);
+        
+      } catch (error) {
+        console.error('Erro ao buscar saldo de SMS:', error);
+        this.smsCredits = 0;
+      }
+    },
     
-  async handleLogout() {
+    async handleLogout() {
       if (this.isLoggingOut) return;
       
-      // Confirmar logout
       if (!confirm('Tem certeza que deseja sair?')) {
         return;
       }
@@ -407,25 +386,17 @@ export default {
           }
         });
         
-        console.log('✅ [Navbar] Logout realizado com sucesso');
-        
       } catch (error) {
-        console.error('❌ [Navbar] Erro ao fazer logout:', error);
-        // Mesmo com erro, vamos limpar os dados locais
+        console.error('Erro ao fazer logout:', error);
       } finally {
-        // 🔧 CORRIGIDO: Remover listeners antes de limpar dados
         window.removeEventListener('auth-changed', this.handleAuthChanged);
         document.removeEventListener('click', this.handleClickOutside);
         
-        // Limpar dados locais
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_type');
         localStorage.removeItem('user_data');
         
         this.isLoggingOut = false;
-        
-        // 🔧 ATUALIZADO: Redirecionar sem disparar evento
-        console.log('✅ [Navbar] Redirecionando para home após logout...');
         window.location.href = '/';
       }
     },
@@ -465,30 +436,36 @@ export default {
       if (this.$refs.profileDropdown && !this.$refs.profileDropdown.contains(event.target)) {
         this.showProfile = false;
       }
+    },
+
+    // Método para atualizar os créditos quando necessário
+    updateSmsCredits(credits) {
+      this.smsCredits = credits;
     }
   },
   
-  // 🔧 ATUALIZADO: Lifecycle hooks
   mounted() {
-    console.log('🚀 [Navbar] Componente montado');
-    
-    // Buscar dados do usuário ao montar o componente
     this.fetchUserData();
     
-    // 🔧 NOVO: Listener para atualizar quando o login for feito
     window.addEventListener('auth-changed', () => {
-      console.log('🔄 [Navbar] Auth changed, recarregando dados...');
+      console.log('Auth changed, recarregando dados...');
       this.fetchUserData();
     });
     
-    // Adicionar listener para fechar dropdowns ao clicar fora
+    // Adicionar listener para atualizar créditos quando houver mudanças
+    window.addEventListener('credits-updated', (event) => {
+      if (event.detail && event.detail.credits !== undefined) {
+        this.updateSmsCredits(event.detail.credits);
+      }
+    });
+    
     document.addEventListener('click', this.handleClickOutside);
   },
   
   beforeUnmount() {
-    console.log('👋 [Navbar] Componente desmontado');
     document.removeEventListener('click', this.handleClickOutside);
     window.removeEventListener('auth-changed', this.fetchUserData);
+    window.removeEventListener('credits-updated', this.updateSmsCredits);
   }
 };
 </script>
@@ -601,15 +578,22 @@ export default {
   flex-shrink: 0;
 }
 
+/* Estilo para exibição de SMS disponíveis */
 .credits-display {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #10B981, #059669);
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
   border-radius: 10px;
   color: white;
   font-weight: 600;
+  transition: all 0.3s;
+}
+
+.credits-display:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .credits-display i {
@@ -618,6 +602,7 @@ export default {
 
 .credits-amount {
   font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .credits-label {
@@ -844,6 +829,23 @@ export default {
   font-size: 0.813rem;
   font-weight: 600;
   margin-top: 0.25rem;
+}
+
+.profile-sms {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3B82F6;
+  font-size: 0.813rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+}
+
+.profile-sms i {
+  font-size: 0.875rem;
 }
 
 .dropdown-divider {

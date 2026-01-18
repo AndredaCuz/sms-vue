@@ -1,5 +1,51 @@
 <template>
   <div class="home-container">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-logo">
+          <div class="logo-icon">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <span class="logo-text">DEV<span class="logo-highlight">SMS</span></span>
+        </div>
+        
+        <div class="nav-links">
+          <a href="#recursos" class="nav-link" @click.prevent="scrollToSection('recursos')">Recursos</a>
+          <a href="#como-funciona" class="nav-link" @click.prevent="scrollToSection('como-funciona')">Como Funciona</a>
+          <a href="#precos" class="nav-link" @click.prevent="scrollToSection('precos')">Preços</a>
+        </div>
+        
+        <div class="nav-actions">
+          <router-link to="/login" class="btn-nav-login">
+            <i class="fas fa-sign-in-alt"></i>
+            Entrar
+          </router-link>
+          <router-link to="/register" class="btn-nav-register">
+            <i class="fas fa-rocket"></i>
+            Criar Conta
+          </router-link>
+        </div>
+        
+        <button class="mobile-menu-btn" @click="toggleMobileMenu">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+      
+      <!-- Mobile Menu -->
+      <div class="mobile-menu" :class="{ 'active': mobileMenuOpen }">
+        <a href="#recursos" class="mobile-link" @click="scrollToSectionMobile('recursos')">Recursos</a>
+        <a href="#como-funciona" class="mobile-link" @click="scrollToSectionMobile('como-funciona')">Como Funciona</a>
+        <a href="#precos" class="mobile-link" @click="scrollToSectionMobile('precos')">Preços</a>
+        <router-link to="/login" class="mobile-link" @click="closeMobileMenu">
+          <i class="fas fa-sign-in-alt"></i> Entrar
+        </router-link>
+        <router-link to="/register" class="mobile-link primary" @click="closeMobileMenu">
+          <i class="fas fa-rocket"></i> Criar Conta
+        </router-link>
+      </div>
+    </nav>
+
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-content">
@@ -14,12 +60,43 @@
             <span class="gradient-text">simples e eficiente</span>
           </h1>
           
-          
           <p class="hero-description">
             Conecte-se com seus clientes instantaneamente. Plataforma completa para gestão 
             e envio de SMS com alta taxa de entrega e preços acessíveis.
           </p>
-
+          
+          <div class="hero-actions">
+            <router-link to="/register" class="btn btn-primary btn-lg btn-glow">
+              <i class="fas fa-rocket"></i>
+              Começar Agora - É Grátis
+              <span class="btn-shine"></span>
+            </router-link>
+            <a href="#precos" class="btn btn-outline btn-lg" @click.prevent="scrollToSection('precos')">
+              <i class="fas fa-tags"></i>
+              Ver Preços
+            </a>
+          </div>
+          
+          <div class="hero-note">
+            <i class="fas fa-gift"></i>
+            <span>Ganhe <strong>100 créditos grátis</strong> ao criar sua conta!</span>
+          </div>
+          
+          <div class="hero-stats">
+            <div class="stat-item" v-for="(stat, index) in stats" :key="index">
+              <div class="stat-icon" :style="{ background: stat.bgColor }">
+                <i :class="stat.icon" :style="{ color: stat.color }"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ stat.value }}</div>
+                <div class="stat-label">{{ stat.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="hero-image" data-aos="fade-left">
+          <!-- Phone Mockup Principal -->
           <div class="hero-illustration">
             <div class="phone-mockup">
               <div class="phone-screen">
@@ -76,36 +153,7 @@
             </div>
           </div>
           
-          <div class="hero-actions">
-            <router-link to="/register" class="btn btn-primary btn-lg">
-              <i class="fas fa-rocket"></i>
-              Criar Conta Grátis
-            </router-link>
-            <router-link to="/login" class="btn btn-outline btn-lg">
-              <i class="fas fa-sign-in-alt"></i>
-              Entrar
-            </router-link>
-          </div>
-          
-          <div class="hero-note">
-            <i class="fas fa-gift"></i>
-            <span>Ganhe <strong>100 créditos grátis</strong> ao criar sua conta!</span>
-          </div>
-          
-          <div class="hero-stats">
-            <div class="stat-item" v-for="(stat, index) in stats" :key="index">
-              <div class="stat-icon" :style="{ background: stat.bgColor }">
-                <i :class="stat.icon" :style="{ color: stat.color }"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ stat.value }}</div>
-                <div class="stat-label">{{ stat.label }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="hero-image" data-aos="fade-left">
+          <!-- Floating Cards -->
           <div class="floating-card card-1">
             <div class="card-icon success">
               <i class="fas fa-check-circle"></i>
@@ -135,36 +183,12 @@
               <div class="card-subtitle">Entrega garantida</div>
             </div>
           </div>
-          
-          <div class="hero-illustration">
-            <div class="phone-mockup">
-              <div class="phone-screen">
-                <div class="sms-bubble sms-1">
-                  <div class="bubble-header">
-                    <i class="fas fa-sms"></i>
-                    <span>DEV SMS</span>
-                  </div>
-                  <p>Olá! Sua promoção especial aguarda você 🎉</p>
-                  <div class="bubble-time">14:23</div>
-                </div>
-                <div class="sms-bubble sms-2">
-                  <div class="bubble-header">
-                    <i class="fas fa-sms"></i>
-                    <span>DEV SMS</span>
-                  </div>
-                  <p>Seu código de verificação: 123456</p>
-                  <div class="bubble-time">14:25</div>
-                </div>
-              </div>
-              <div class="phone-notch"></div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
 
     <!-- Features Section -->
-    <section class="features-section" data-aos="fade-up">
+    <section id="recursos" class="features-section" data-aos="fade-up">
       <div class="section-header">
         <h2 class="section-title">Recursos que fazem a diferença</h2>
         <p class="section-subtitle">Tudo que você precisa para gerenciar suas campanhas de SMS</p>
@@ -188,7 +212,7 @@
     </section>
 
     <!-- How It Works -->
-    <section class="how-it-works" data-aos="fade-up">
+    <section id="como-funciona" class="how-it-works" data-aos="fade-up">
       <div class="section-header">
         <h2 class="section-title">Como funciona?</h2>
         <p class="section-subtitle">Comece a enviar SMS em apenas 3 passos simples</p>
@@ -219,7 +243,7 @@
     </section>
 
     <!-- Pricing Section -->
-    <section class="pricing-section" data-aos="fade-up">
+    <section id="precos" class="pricing-section" data-aos="fade-up">
       <div class="section-header">
         <h2 class="section-title">Planos que cabem no seu bolso</h2>
         <p class="section-subtitle">Escolha o melhor pacote de créditos para suas necessidades</p>
@@ -291,6 +315,39 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
+const mobileMenuOpen = ref(false)
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
+const scrollToSection = (sectionId) => {
+  const element = document.getElementById(sectionId)
+  if (element) {
+    const navbarHeight = 80 // Altura aproximada da navbar
+    const elementPosition = element.getBoundingClientRect().top
+    const offsetPosition = elementPosition + window.pageYOffset - navbarHeight
+    
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    })
+  }
+}
+
+const scrollToSectionMobile = (sectionId) => {
+  closeMobileMenu()
+  setTimeout(() => {
+    scrollToSection(sectionId)
+  }, 300) // Aguarda o menu fechar antes de rolar
+}
+
 const stats = [
   { icon: 'fas fa-paper-plane', value: '28,450', label: 'SMS Enviados', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.1)' },
   { icon: 'fas fa-users', value: '1,247', label: 'Contatos', color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.1)' },
@@ -418,6 +475,11 @@ const pricingPlans = [
 </script>
 
 <style scoped>
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -430,12 +492,231 @@ const pricingPlans = [
   background: #ffffff;
 }
 
-/* Hero Section */
-.hero-section {
-  min-height: 90vh;
+/* Navbar Styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.nav-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
   display: flex;
   align-items: center;
-  padding: 4rem 2rem;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+}
+
+.logo-icon {
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1F2937;
+  letter-spacing: -0.5px;
+}
+
+.logo-highlight {
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.nav-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4B5563;
+  text-decoration: none;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  transition: width 0.3s;
+}
+
+.nav-link:hover {
+  color: #F59E0B;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-nav-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4B5563;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+.btn-nav-login:hover {
+  background: #F3F4F6;
+  color: #F59E0B;
+}
+
+.btn-nav-register {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  text-decoration: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-nav-register::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-nav-register:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-nav-register:hover::before {
+  left: 100%;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #1F2937;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.mobile-menu {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: white;
+  border-top: 1px solid #E5E7EB;
+}
+
+.mobile-menu.active {
+  display: flex;
+}
+
+.mobile-link {
+  padding: 0.75rem 1rem;
+  color: #4B5563;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.3s;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-link:hover {
+  background: #F3F4F6;
+  color: #F59E0B;
+}
+
+.mobile-link.primary {
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  color: white;
+  margin-top: 0.5rem;
+}
+
+.mobile-link.primary:hover {
+  transform: translateX(5px);
+}
+
+/* Hero Section */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 8rem 2rem 4rem;
   background: linear-gradient(135deg, #FEF3C7 0%, #FED7AA 50%, #FCA5A5 100%);
   position: relative;
   overflow: hidden;
@@ -483,6 +764,8 @@ const pricingPlans = [
 
 .hero-text {
   animation: fadeInUp 0.8s ease-out;
+  position: relative;
+  z-index: 10;
 }
 
 @keyframes fadeInUp {
@@ -509,6 +792,8 @@ const pricingPlans = [
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.6s ease-out;
+  position: relative;
+  z-index: 10;
 }
 
 @keyframes slideIn {
@@ -528,6 +813,8 @@ const pricingPlans = [
   line-height: 1.1;
   color: #1F2937;
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10;
 }
 
 .gradient-text {
@@ -543,6 +830,8 @@ const pricingPlans = [
   line-height: 1.7;
   color: #4B5563;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 10;
 }
 
 .hero-actions {
@@ -550,6 +839,8 @@ const pricingPlans = [
   gap: 1rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
 }
 
 .hero-note {
@@ -564,6 +855,8 @@ const pricingPlans = [
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: 3rem;
   animation: pulse 2s ease-in-out infinite;
+  position: relative;
+  z-index: 10;
 }
 
 .hero-note i {
@@ -610,6 +903,36 @@ const pricingPlans = [
   background: linear-gradient(135deg, #F59E0B, #DC2626);
   color: white;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5), 0 0 30px rgba(245, 158, 11, 0.3);
+  }
+}
+
+.btn-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
 }
 
 .btn-primary:hover {
@@ -633,6 +956,8 @@ const pricingPlans = [
   display: flex;
   gap: 2rem;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
 }
 
 .stat-item {
@@ -677,6 +1002,7 @@ const pricingPlans = [
   position: relative;
   height: 600px;
   animation: fadeInRight 1s ease-out;
+  z-index: 1;
 }
 
 @keyframes fadeInRight {
@@ -700,7 +1026,7 @@ const pricingPlans = [
   align-items: center;
   gap: 1rem;
   animation: floatCard 3s ease-in-out infinite;
-  z-index: 2;
+  z-index: 5;
 }
 
 @keyframes floatCard {
@@ -756,10 +1082,12 @@ const pricingPlans = [
 
 /* Phone Mockup */
 .hero-illustration {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .phone-mockup {
@@ -821,6 +1149,7 @@ const pricingPlans = [
 
 .sms-1 { animation-delay: 0.3s; }
 .sms-2 { animation-delay: 0.6s; }
+.sms-3 { animation-delay: 0.9s; }
 
 .bubble-header {
   display: flex;
@@ -843,6 +1172,92 @@ const pricingPlans = [
   font-size: 0.75rem;
   color: #9CA3AF;
   text-align: right;
+}
+
+.bubble-status {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+  color: #10B981;
+  font-size: 0.875rem;
+}
+
+.bubble-status.sending {
+  color: #F59E0B;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 0.375rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 16px;
+  width: fit-content;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #9CA3AF;
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.signal-waves {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.wave {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: wave 3s ease-out infinite;
+}
+
+.wave-1 { animation-delay: 0s; }
+.wave-2 { animation-delay: 1s; }
+.wave-3 { animation-delay: 2s; }
+
+@keyframes wave {
+  0% {
+    width: 300px;
+    height: 300px;
+    opacity: 1;
+  }
+  100% {
+    width: 450px;
+    height: 450px;
+    opacity: 0;
+  }
 }
 
 /* Features Section */
@@ -1226,6 +1641,18 @@ const pricingPlans = [
 
 /* Responsive */
 @media (max-width: 1024px) {
+  .nav-links {
+    display: none;
+  }
+  
+  .nav-actions {
+    display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: block;
+  }
+  
   .hero-content {
     grid-template-columns: 1fr;
     text-align: center;
@@ -1254,6 +1681,23 @@ const pricingPlans = [
 }
 
 @media (max-width: 768px) {
+  .nav-container {
+    padding: 1rem;
+  }
+  
+  .logo-text {
+    font-size: 1.25rem;
+  }
+  
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .hero-section {
+    padding: 6rem 1rem 3rem;
+  }
+  
   .hero-title {
     font-size: 2rem;
   }
@@ -1276,6 +1720,24 @@ const pricingPlans = [
   
   .pricing-card.popular {
     transform: scale(1);
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hero-actions .btn {
+    width: 100%;
+  }
+  
+  .hero-stats {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .stat-item {
+    width: 100%;
   }
 }
 </style>

@@ -11,16 +11,25 @@
       </div>
 
       <div class="header-actions">
-        <button @click="atualizarDados" class="btn btn-secondary" :disabled="carregando">
+        <button @click="atualizarDados" class="btn btn-refresh" :disabled="carregando">
           <i class="fas fa-sync-alt" :class="{ 'fa-spin': carregando }"></i>
           Atualizar
         </button>
-        <RouterLink to="/lista_empresa" class="btn btn-accent">
-          <i class="fas fa-building"></i> Empresas
-        </RouterLink>
-        <RouterLink to="/lista_planos" class="btn btn-accent">
-          <i class="fas fa-building"></i> Planos
-        </RouterLink>
+        
+        <div class="action-buttons-group">
+          <RouterLink to="/lista_empresa" class="btn btn-action btn-empresa">
+            <i class="fas fa-building"></i>
+            <span>Empresas</span>
+          </RouterLink>
+          <RouterLink to="/lista_planos" class="btn btn-action btn-plano">
+            <i class="fas fa-box"></i>
+            <span>Planos</span>
+          </RouterLink>
+          <RouterLink to="/listar_voucher" class="btn btn-action btn-voucher">
+            <i class="fas fa-ticket-alt"></i>
+            <span>Vouchers</span>
+          </RouterLink>
+        </div>
       </div>
     </div>
 
@@ -420,7 +429,6 @@ const buscarDadosAPI = async () => {
     
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
     
-    // Verificar se há token antes de fazer a requisição
     if (!token) {
       throw new Error('Token de autenticação não encontrado. Por favor, faça login.')
     }
@@ -434,7 +442,6 @@ const buscarDadosAPI = async () => {
     const response = await fetch(API_URL, {
       method: 'GET',
       headers: headers
-      // Removido credentials: 'include' para resolver problema de CORS
     })
     
     if (!response.ok) {
@@ -465,7 +472,6 @@ const atualizarDados = async () => {
     if (resultado.success && resultado.data) {
       dashboardData.value = resultado.data
       
-      // Atualizar stats dinamicamente
       stats.value[0].value = dashboardData.value.companies.total.toString()
       stats.value[0].subtitle = `${dashboardData.value.companies.active} ativas, ${dashboardData.value.companies.suspended} suspensas`
       
@@ -488,10 +494,8 @@ const atualizarDados = async () => {
   } catch (error) {
     console.error('Erro ao carregar dashboard:', error)
     
-    // Mensagens de erro mais específicas
     if (error.message.includes('Não autorizado')) {
       erro.value = 'Sessão expirada. Por favor, faça login novamente.'
-      // Opcional: redirecionar para login após 3 segundos
       setTimeout(() => {
         window.location.href = '/login'
       }, 3000)
@@ -526,7 +530,6 @@ const exportarSMS = () => {
 }
 
 const criarGraficos = () => {
-  // Destruir gráficos existentes
   if (empresasChart.value && empresasChart.value._chart) {
     empresasChart.value._chart.destroy()
   }
@@ -557,7 +560,6 @@ const criarGraficos = () => {
     }
   }
 
-  // Gráfico de Empresas
   if (empresasChart.value) {
     new Chart(empresasChart.value, {
       type: 'doughnut',
@@ -593,7 +595,6 @@ const criarGraficos = () => {
     })
   }
 
-  // Gráfico de SMS
   if (smsChart.value) {
     new Chart(smsChart.value, {
       type: 'bar',
@@ -636,10 +637,6 @@ const criarGraficos = () => {
     })
   }
 }
-
-// ===========================
-// LIFECYCLE
-// ===========================
 
 onMounted(() => {
   atualizarDataHora()
@@ -710,7 +707,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 2rem;
-  gap: 1.5rem;
+  gap: 2rem;
   flex-wrap: wrap;
 }
 
@@ -734,8 +731,103 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.action-buttons-group {
+  display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+/* ===========================
+   BOTÕES DO HEADER
+=========================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-refresh {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action {
+  position: relative;
+  overflow: hidden;
+  color: white;
+  min-width: 130px;
+  justify-content: center;
+}
+
+.btn-action::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: left 0.3s ease;
+}
+
+.btn-action:hover::before {
+  left: 100%;
+}
+
+.btn-action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-empresa {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+}
+
+.btn-empresa:hover {
+  background: linear-gradient(135deg, #2563EB, #1d4ed8);
+}
+
+.btn-plano {
+  background: linear-gradient(135deg, #10B981, #059669);
+}
+
+.btn-plano:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.btn-voucher {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+}
+
+.btn-voucher:hover {
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
 }
 
 /* ===========================
@@ -881,7 +973,7 @@ onMounted(() => {
 }
 
 /* ===========================
-   INFO CARDS
+   INFO CARDS & CHARTS
 =========================== */
 .info-cards-grid {
   display: grid;
@@ -945,9 +1037,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* ===========================
-   GRÁFICOS
-=========================== */
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -1103,7 +1192,7 @@ onMounted(() => {
 }
 
 /* ===========================
-   BADGES
+   BADGES E BOTÕES
 =========================== */
 .badge {
   display: inline-flex;
@@ -1136,26 +1225,9 @@ onMounted(() => {
   color: #991b1b;
 }
 
-/* ===========================
-   BOTÕES
-=========================== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-decoration: none;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.badge-secondary {
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .btn-secondary {
@@ -1165,17 +1237,6 @@ onMounted(() => {
 
 .btn-secondary:hover:not(:disabled) {
   background: #e5e7eb;
-}
-
-.btn-accent {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-  color: white;
-}
-
-.btn-accent:hover {
-  background: linear-gradient(135deg, #2563EB, #1d4ed8);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-sm {
@@ -1204,26 +1265,15 @@ onMounted(() => {
   border-color: #d1d5db;
 }
 
-.btn-icon.btn-success {
-  background: #10b981;
+.btn-icon.btn-info {
+  background: #3B82F6;
   color: white;
-  border-color: #10b981;
+  border-color: #3B82F6;
 }
 
-.btn-icon.btn-success:hover {
-  background: #059669;
-  border-color: #059669;
-}
-
-.btn-icon.btn-danger {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-}
-
-.btn-icon.btn-danger:hover {
-  background: #dc2626;
-  border-color: #dc2626;
+.btn-icon.btn-info:hover {
+  background: #2563EB;
+  border-color: #2563EB;
 }
 
 /* ===========================
@@ -1243,14 +1293,25 @@ onMounted(() => {
   .page-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
 
   .header-actions {
+    align-items: stretch;
     width: 100%;
   }
 
-  .header-actions .btn {
-    flex: 1;
+  .action-buttons-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-action {
+    width: 100%;
+  }
+
+  .btn-refresh {
+    width: 100%;
     justify-content: center;
   }
 
@@ -1260,15 +1321,7 @@ onMounted(() => {
   }
 
   .stat-card {
-    flex-direction: column;
-    text-align: center;
-    align-items: center;
-  }
-
-  .stat-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
   }
 
   .alert {
@@ -1288,11 +1341,6 @@ onMounted(() => {
   .data-table th,
   .data-table td {
     padding: 0.75rem 0.5rem;
-  }
-
-  .empresa-info {
-    flex-direction: column;
-    text-align: center;
   }
 
   .action-buttons {
@@ -1316,6 +1364,16 @@ onMounted(() => {
   .chart-container {
     height: 250px;
     padding: 1rem;
+  }
+
+  .btn-action span {
+    display: none;
+  }
+
+  .btn-action {
+    min-width: auto;
+    width: auto;
+    padding: 0.75rem 1rem;
   }
 }
 </style>

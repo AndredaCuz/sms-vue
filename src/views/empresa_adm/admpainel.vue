@@ -1,5 +1,5 @@
 <template>
-  <navegacao />
+  <AppLayout>
   <div class="dashboard-container fade-in">
     <!-- HEADER -->
     <div class="page-header">
@@ -15,21 +15,7 @@
           <i class="fas fa-sync-alt" :class="{ 'fa-spin': carregando }"></i>
           Atualizar
         </button>
-        
-        <div class="action-buttons-group">
-          <RouterLink to="/lista_empresa" class="btn btn-action btn-empresa">
-            <i class="fas fa-building"></i>
-            <span>Empresas</span>
-          </RouterLink>
-          <RouterLink to="/lista_planos" class="btn btn-action btn-plano">
-            <i class="fas fa-box"></i>
-            <span>Planos</span>
-          </RouterLink>
-          <RouterLink to="/listar_voucher" class="btn btn-action btn-voucher">
-            <i class="fas fa-ticket-alt"></i>
-            <span>Vouchers</span>
-          </RouterLink>
-        </div>
+        <!-- ✅ REMOVIDO: action-buttons-group com Empresas, Planos e Vouchers -->
       </div>
     </div>
 
@@ -307,12 +293,13 @@
       </div>
     </div>
   </div>
+</AppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Chart } from 'chart.js/auto'
-import navegacao from '../../components/navegacao.vue'
+import AppLayout from '../../components/AppLayout.vue';
 
 // ===========================
 // ESTADO
@@ -736,12 +723,6 @@ onMounted(() => {
   align-items: flex-end;
 }
 
-.action-buttons-group {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
 /* ===========================
    BOTÕES DO HEADER
 =========================== */
@@ -776,58 +757,6 @@ onMounted(() => {
   border-color: #d1d5db;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-action {
-  position: relative;
-  overflow: hidden;
-  color: white;
-  min-width: 130px;
-  justify-content: center;
-}
-
-.btn-action::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: left 0.3s ease;
-}
-
-.btn-action:hover::before {
-  left: 100%;
-}
-
-.btn-action:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-.btn-empresa {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-}
-
-.btn-empresa:hover {
-  background: linear-gradient(135deg, #2563EB, #1d4ed8);
-}
-
-.btn-plano {
-  background: linear-gradient(135deg, #10B981, #059669);
-}
-
-.btn-plano:hover {
-  background: linear-gradient(135deg, #059669, #047857);
-}
-
-.btn-voucher {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
-}
-
-.btn-voucher:hover {
-  background: linear-gradient(135deg, #7C3AED, #6D28D9);
 }
 
 /* ===========================
@@ -1301,20 +1230,6 @@ onMounted(() => {
     width: 100%;
   }
 
-  .action-buttons-group {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .btn-action {
-    width: 100%;
-  }
-
-  .btn-refresh {
-    width: 100%;
-    justify-content: center;
-  }
-
   .stats-grid,
   .info-cards-grid {
     grid-template-columns: 1fr;
@@ -1364,16 +1279,6 @@ onMounted(() => {
   .chart-container {
     height: 250px;
     padding: 1rem;
-  }
-
-  .btn-action span {
-    display: none;
-  }
-
-  .btn-action {
-    min-width: auto;
-    width: auto;
-    padding: 0.75rem 1rem;
   }
 }
 </style>

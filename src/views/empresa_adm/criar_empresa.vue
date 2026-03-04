@@ -1,6 +1,6 @@
 <template>
 
-    <navegacao/>
+    <AppLayout>
   <div class="criar-empresa-page">
     <!-- Header -->
     <div class="page-header">
@@ -240,16 +240,18 @@
       </form>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'CriarEmpresa',
   components:{
-    navegacao
+    AppLayout
 
   },
   data() {

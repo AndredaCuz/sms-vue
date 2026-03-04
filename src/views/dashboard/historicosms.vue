@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
 
   <div class="fade-in">
     <!-- Page Header -->
@@ -353,16 +353,19 @@
       </div>
     </div>
   </div>
+    </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'SmsHistory',
   components: {
-    navegacao
+AppLayout
   },
   data() {
     const today = new Date();

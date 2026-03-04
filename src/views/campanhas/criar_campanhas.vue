@@ -1,468 +1,297 @@
 <template>
-  <navegacao/>
+  <AppLayout>
+  
+  
+  <div class="send-sms-page fade-in">
 
-  <div class="create-campaign-page fade-in">
     <!-- Header -->
     <div class="page-header">
-      <div class="header-content">
-        
-        <div class="header-text">
-          <h1 class="page-title">
-            <i class="fas fa-bullhorn"></i>
-            {{ modoEdicao ? 'Editar Campanha' : 'Nova Campanha' }}
-          </h1>
-          <p class="page-subtitle">
-            Configure sua campanha de SMS
-          </p>
+      <div class="header-left">
+        <div class="header-icon">
+          <i class="fas fa-paper-plane"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Enviar SMS</h1>
+          <p class="page-subtitle">Configure e envie sua mensagem SMS</p>
         </div>
       </div>
     </div>
 
-    <div class="content-grid">
-      <!-- COLUNA PRINCIPAL -->
-      <div class="main-column">
-        <form @submit.prevent="salvarCampanha">
-          
-          <!-- Informações Básicas -->
-          <div class="card card-enhanced">
-            <div class="card-header">
-              <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                <i class="fas fa-info-circle"></i>
-              </div>
-              <h3 class="card-title">Informações Básicas</h3>
-            </div>
+    <!-- Grid principal -->
+    <form @submit.prevent="enviarSMS">
+      <div class="content-grid">
 
+        <!-- ══════════════ COLUNA ESQUERDA ══════════════ -->
+        <div class="col-left">
+
+          <!-- Informações da mensagem -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <i class="fas fa-comment-dots"></i>
+              </div>
+              <h3 class="card-title">Mensagem</h3>
+            </div>
             <div class="card-body">
+
               <div class="form-group">
                 <label class="form-label">
-                  <i class="fas fa-signature"></i> Nome da Campanha *
+                  <i class="fas fa-signature"></i> Nome da Campanha <span class="req">*</span>
                 </label>
-                <input 
-                  v-model="form.name" 
-                  class="form-input" 
-                  placeholder="Ex: Campanha de Boas Vindas" 
-                  required 
+                <input
+                  v-model="form.name"
+                  class="form-input"
+                  placeholder="Ex: Promoção de Natal..."
+                  required
                 />
               </div>
 
-              <div class="form-group">
+              <div class="form-group mb-0">
                 <label class="form-label">
-                  <i class="fas fa-comment-dots"></i> Mensagem *
+                  <i class="fas fa-align-left"></i> Mensagem <span class="req">*</span>
                 </label>
-                <textarea 
-                  v-model="form.message_body" 
-                  class="form-input" 
-                  rows="5"
-                  placeholder="Digite sua mensagem aqui..."
+                <textarea
+                  v-model="form.message_body"
+                  class="form-input form-textarea"
+                  rows="8"
+                  placeholder="Digite o texto do SMS aqui..."
                   required
-                  @input="contarCaracteres"
                 ></textarea>
-                <div class="message-info">
-                  <span class="char-count" :class="{ 'text-danger': caracteresRestantes < 0 }">
-                    <i class="fas fa-text-width"></i>
-                    {{ form.message_body.length }} caracteres
-                    <span v-if="caracteresRestantes >= 0">({{ caracteresRestantes }} restantes)</span>
-                    <span v-else class="text-danger">({{ Math.abs(caracteresRestantes) }} a mais)</span>
-                  </span>
-                  <span class="sms-count">
-                    <i class="fas fa-sms"></i>
-                    {{ calcularNumeroSMS() }} SMS
-                  </span>
-                </div>
               </div>
+
             </div>
           </div>
 
-          <!-- Tipo de Campanha -->
-          <div class="card card-enhanced">
+          <!-- Botões de ação fixos na base da coluna esquerda -->
+          <div class="action-bar">
+            <router-link :to="{ name: 'Lista_campanhas' }" class="btn btn-cancel">
+              <i class="fas fa-times"></i> Cancelar
+            </router-link>
+            <button class="btn btn-send" type="submit" :disabled="isSubmitting">
+              <i :class="isSubmitting ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'"></i>
+              {{ labelBotao }}
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ══════════════ COLUNA DIREITA ══════════════ -->
+        <div class="col-right">
+
+          <!-- Tipo de Envio -->
+          <div class="card">
             <div class="card-header">
-              <div class="card-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <div class="card-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
                 <i class="fas fa-clock"></i>
               </div>
               <h3 class="card-title">Tipo de Envio</h3>
             </div>
-
             <div class="card-body">
-              <div class="campaign-types">
-                <label 
-                  class="type-card"
-                  :class="{ 'type-selected': form.type === 'instant' }"
-                >
-                  <input 
-                    type="radio" 
-                    value="instant" 
-                    v-model="form.type"
-                    name="type"
-                  />
-                  <div class="type-icon">
+
+              <div class="type-cards">
+                <label class="type-card" :class="{ 'type-selected': form.type === 'instant' }">
+                  <input type="radio" value="instant" v-model="form.type" name="type" />
+                  <div class="type-card-icon instant">
                     <i class="fas fa-bolt"></i>
                   </div>
-                  <div class="type-info">
-                    <h4>Instantâneo</h4>
-                    <p>Enviar imediatamente</p>
+                  <div class="type-card-info">
+                    <strong>Instantâneo</strong>
+                    <small>Enviar agora</small>
                   </div>
-                  <i class="fas fa-check-circle check-icon"></i>
+                  <i class="fas fa-check-circle type-check"></i>
                 </label>
 
-                <label 
-                  class="type-card"
-                  :class="{ 'type-selected': form.type === 'scheduled' }"
-                >
-                  <input 
-                    type="radio" 
-                    value="scheduled" 
-                    v-model="form.type"
-                    name="type"
-                  />
-                  <div class="type-icon">
+                <label class="type-card" :class="{ 'type-selected': form.type === 'scheduled' }">
+                  <input type="radio" value="scheduled" v-model="form.type" name="type" />
+                  <div class="type-card-icon scheduled">
                     <i class="fas fa-calendar-alt"></i>
                   </div>
-                  <div class="type-info">
-                    <h4>Agendado</h4>
-                    <p>Agendar para depois</p>
+                  <div class="type-card-info">
+                    <strong>Agendado</strong>
+                    <small>Escolher data/hora</small>
                   </div>
-                  <i class="fas fa-check-circle check-icon"></i>
+                  <i class="fas fa-check-circle type-check"></i>
                 </label>
               </div>
 
-              <!-- Data/Hora Agendamento -->
-              <div v-if="form.type === 'scheduled'" class="scheduled-section">
-                <div class="form-group">
-                  <label class="form-label">
-                    <i class="fas fa-calendar-check"></i> Data e Hora do Envio *
-                  </label>
-                  <input 
-                    type="datetime-local" 
-                    v-model="form.scheduled_at" 
-                    class="form-input"
-                    :min="dataHoraMinima"
-                    required 
-                  />
-                  <small class="form-hint">
-                    <i class="fas fa-info-circle"></i>
-                    A campanha será enviada automaticamente na data e hora selecionadas
-                  </small>
-                </div>
+              <div v-if="form.type === 'scheduled'" class="scheduled-box">
+                <label class="form-label">
+                  <i class="fas fa-calendar-check"></i> Data e Hora <span class="req">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  v-model="form.scheduled_at"
+                  class="form-input"
+                  :min="dataHoraMinima"
+                  required
+                />
+                <small class="form-hint">
+                  <i class="fas fa-info-circle"></i>
+                  Envio automático na data selecionada
+                </small>
               </div>
+
             </div>
           </div>
 
           <!-- Público Alvo -->
-          <div class="card card-enhanced">
+          <div class="card">
             <div class="card-header">
-              <div class="card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+              <div class="card-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
                 <i class="fas fa-users"></i>
               </div>
               <h3 class="card-title">Público Alvo</h3>
             </div>
-
             <div class="card-body">
-              <div class="target-types">
-                <label 
-                  class="target-card"
-                  :class="{ 'target-selected': form.target_type === 'all' }"
-                >
-                  <input 
-                    type="radio" 
-                    value="all" 
-                    v-model="form.target_type"
-                    name="target"
-                  />
-                  <div class="target-icon">
+
+              <div class="target-cards">
+                <label class="target-card" :class="{ 'target-selected': form.target_type === 'all' }">
+                  <input type="radio" value="all" v-model="form.target_type" name="target" />
+                  <div class="target-card-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
                     <i class="fas fa-globe"></i>
                   </div>
-                  <div class="target-info">
-                    <h4>Todos os Contatos</h4>
-                    <p>Enviar para todos</p>
+                  <div class="target-card-info">
+                    <strong>Todos</strong>
+                    <small>Todos os contatos</small>
                   </div>
+                  <i class="fas fa-check-circle target-check"></i>
                 </label>
 
-                <label 
-                  class="target-card"
-                  :class="{ 'target-selected': form.target_type === 'category' }"
-                >
-                  <input 
-                    type="radio" 
-                    value="category" 
-                    v-model="form.target_type"
-                    name="target"
-                  />
-                  <div class="target-icon">
+                <label class="target-card" :class="{ 'target-selected': form.target_type === 'category' }">
+                  <input type="radio" value="category" v-model="form.target_type" name="target" />
+                  <div class="target-card-icon" style="background: linear-gradient(135deg, #fa709a, #fee140);">
                     <i class="fas fa-tag"></i>
                   </div>
-                  <div class="target-info">
-                    <h4>Por Categoria</h4>
-                    <p>Filtrar por categoria</p>
+                  <div class="target-card-info">
+                    <strong>Categoria</strong>
+                    <small>Filtrar por categoria</small>
                   </div>
+                  <i class="fas fa-check-circle target-check"></i>
                 </label>
 
-                <label 
-                  class="target-card"
-                  :class="{ 'target-selected': form.target_type === 'selected' }"
-                >
-                  <input 
-                    type="radio" 
-                    value="selected" 
-                    v-model="form.target_type"
-                    name="target"
-                  />
-                  <div class="target-icon">
+                <label class="target-card" :class="{ 'target-selected': form.target_type === 'selected' }">
+                  <input type="radio" value="selected" v-model="form.target_type" name="target" />
+                  <div class="target-card-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                     <i class="fas fa-user-check"></i>
                   </div>
-                  <div class="target-info">
-                    <h4>Contatos Específicos</h4>
-                    <p>Escolher manualmente</p>
+                  <div class="target-card-info">
+                    <strong>Específicos</strong>
+                    <small>Escolher manualmente</small>
                   </div>
+                  <i class="fas fa-check-circle target-check"></i>
                 </label>
               </div>
 
               <!-- Selecionar Categoria -->
               <div v-if="form.target_type === 'category'" class="target-section">
-                <div class="form-group">
-                  <label class="form-label">
-                    <i class="fas fa-tags"></i> Selecione a Categoria *
-                  </label>
-                  
-                  <div v-if="isLoadingCategories" class="loading-sm">
-                    <div class="spinner-sm"></div>
-                    <span>Carregando categorias...</span>
-                  </div>
+                <label class="form-label">
+                  <i class="fas fa-tags"></i> Categoria <span class="req">*</span>
+                </label>
 
-                  <div v-else-if="categorias.length === 0" class="empty-sm">
-                    <i class="fas fa-inbox"></i>
-                    <p>Nenhuma categoria disponível</p>
-                  </div>
-
-                  <select v-else v-model="form.target_category_id" class="form-input" required>
-                    <option value="">Selecione uma categoria</option>
-                    <option 
-                      v-for="cat in categorias" 
-                      :key="cat.id" 
-                      :value="cat.id"
-                    >
-                      {{ cat.name }} ({{ cat.clients_count }} contatos)
-                    </option>
-                  </select>
+                <div v-if="isLoadingCategories" class="loading-sm">
+                  <div class="spinner-sm"></div>
+                  <span>Carregando...</span>
                 </div>
+
+                <div v-else-if="categorias.length === 0" class="empty-sm">
+                  <i class="fas fa-inbox"></i>
+                  <p>Nenhuma categoria disponível</p>
+                </div>
+
+                <select v-else v-model="form.target_category_id" class="form-input" required>
+                  <option value="">Selecione uma categoria</option>
+                  <option v-for="cat in categorias" :key="cat.id" :value="cat.id">
+                    {{ cat.name }} ({{ cat.clients_count }} contatos)
+                  </option>
+                </select>
               </div>
 
               <!-- Selecionar Contatos -->
               <div v-if="form.target_type === 'selected'" class="target-section">
-                <div class="form-group">
-                  <label class="form-label">
-                    <i class="fas fa-users"></i> Selecione os Contatos *
+                <label class="form-label">
+                  <i class="fas fa-users"></i> Contatos <span class="req">*</span>
+                </label>
+
+                <div class="search-wrap">
+                  <i class="fas fa-search search-ico"></i>
+                  <input
+                    v-model="buscaContato"
+                    type="text"
+                    class="form-input search-input"
+                    placeholder="Buscar contatos..."
+                    @input="buscarContatos"
+                  />
+                </div>
+
+                <div v-if="isLoadingContacts" class="loading-sm">
+                  <div class="spinner-sm"></div>
+                  <span>Carregando...</span>
+                </div>
+
+                <div v-else-if="contatosDisponiveis.length === 0" class="empty-sm">
+                  <i class="fas fa-inbox"></i>
+                  <p>Nenhum contato encontrado</p>
+                </div>
+
+                <div v-else class="contacts-list">
+                  <label
+                    v-for="contato in contatosDisponiveis"
+                    :key="contato.id"
+                    class="contact-item"
+                    :class="{ 'contact-selected': form.client_ids.includes(contato.id) }"
+                  >
+                    <input type="checkbox" :value="contato.id" v-model="form.client_ids" />
+                    <div class="contact-avatar">{{ contato.name.charAt(0).toUpperCase() }}</div>
+                    <div class="contact-info">
+                      <span class="contact-name">{{ contato.name }}</span>
+                      <span class="contact-phone">{{ contato.phone }}</span>
+                    </div>
+                    <i class="fas fa-check-circle contact-check"></i>
                   </label>
-                  
-                  <div class="search-contacts">
-                    <input 
-                      v-model="buscaContato"
-                      type="text"
-                      class="form-input"
-                      placeholder="Buscar contatos..."
-                      @input="buscarContatos"
-                    />
-                    <i class="fas fa-search search-icon"></i>
-                  </div>
+                </div>
 
-                  <div v-if="isLoadingContacts" class="loading-sm">
-                    <div class="spinner-sm"></div>
-                    <span>Carregando contatos...</span>
-                  </div>
-
-                  <div v-else-if="contatosDisponiveis.length === 0" class="empty-sm">
-                    <i class="fas fa-inbox"></i>
-                    <p>Nenhum contato encontrado</p>
-                  </div>
-
-                  <div v-else class="contacts-list">
-                    <label 
-                      v-for="contato in contatosDisponiveis" 
-                      :key="contato.id"
-                      class="contact-item"
-                      :class="{ 'contact-selected': form.client_ids.includes(contato.id) }"
-                    >
-                      <input 
-                        type="checkbox" 
-                        :value="contato.id"
-                        v-model="form.client_ids"
-                      />
-                      <div class="contact-avatar">
-                        {{ contato.name.charAt(0).toUpperCase() }}
-                      </div>
-                      <div class="contact-info">
-                        <h5>{{ contato.name }}</h5>
-                        <p>{{ contato.phone }}</p>
-                      </div>
-                      <i class="fas fa-check-circle check-icon"></i>
-                    </label>
-                  </div>
-
-                  <div v-if="form.client_ids.length > 0" class="selected-count">
-                    <i class="fas fa-check-circle"></i>
-                    {{ form.client_ids.length }} contato(s) selecionado(s)
-                  </div>
+                <div v-if="form.client_ids.length > 0" class="selected-badge">
+                  <i class="fas fa-check-circle"></i>
+                  {{ form.client_ids.length }} selecionado(s)
                 </div>
               </div>
+
             </div>
           </div>
 
-          <!-- Botões de Ação -->
-          <div class="form-actions">
-           
-            <button class="btn btn-save" type="submit" :disabled="isSubmitting">
-              <i class="fas fa-spinner fa-spin" v-if="isSubmitting"></i>
-              <i class="fas fa-paper-plane" v-else></i>
-              {{ isSubmitting ? 'Criando...' : 'Criar Campanha' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- COLUNA LATERAL -->
-      <div class="sidebar-column">
-        <!-- Resumo da Campanha -->
-        <div class="card card-enhanced sticky-card">
-          <div class="card-header">
-            <div class="card-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-              <i class="fas fa-chart-pie"></i>
-            </div>
-            <h3 class="card-title">Resumo da Campanha</h3>
-          </div>
-
-          <div class="card-body">
-            <div class="summary-list">
-              <div class="summary-item">
-                <i class="fas fa-signature"></i>
-                <div>
-                  <span class="summary-label">Nome</span>
-                  <span class="summary-value">{{ form.name || 'Não definido' }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item">
-                <i class="fas fa-clock"></i>
-                <div>
-                  <span class="summary-label">Tipo de Envio</span>
-                  <span class="summary-value">{{ form.type === 'instant' ? 'Instantâneo' : 'Agendado' }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item" v-if="form.type === 'scheduled' && form.scheduled_at">
-                <i class="fas fa-calendar-check"></i>
-                <div>
-                  <span class="summary-label">Data/Hora</span>
-                  <span class="summary-value">{{ formatarDataHora(form.scheduled_at) }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item">
-                <i class="fas fa-bullseye"></i>
-                <div>
-                  <span class="summary-label">Público Alvo</span>
-                  <span class="summary-value">{{ getTargetLabel() }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item">
-                <i class="fas fa-users"></i>
-                <div>
-                  <span class="summary-label">Destinatários</span>
-                  <span class="summary-value">{{ calcularDestinatarios() }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item">
-                <i class="fas fa-sms"></i>
-                <div>
-                  <span class="summary-label">SMS por Contato</span>
-                  <span class="summary-value">{{ calcularNumeroSMS() }}</span>
-                </div>
-              </div>
-
-              <div class="summary-item highlight">
-                <i class="fas fa-paper-plane"></i>
-                <div>
-                  <span class="summary-label">Total de SMS</span>
-                  <span class="summary-value-big">{{ calcularTotalSMS() }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="cost-estimate">
-              <div class="cost-header">
-                <i class="fas fa-calculator"></i>
-                <span>Estimativa de Custo</span>
-              </div>
-              <div class="cost-value">
-                {{ calcularCusto() }} Kz
-              </div>
-              <small class="cost-note">
-                <i class="fas fa-info-circle"></i>
-                Custo estimado: 2 Kz por SMS
-              </small>
-            </div>
-          </div>
         </div>
+        <!-- fim col-right -->
 
-        <!-- Dicas -->
-        <div class="card card-enhanced">
-          <div class="card-header">
-            <div class="card-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-              <i class="fas fa-lightbulb"></i>
-            </div>
-            <h3 class="card-title">Dicas</h3>
-          </div>
-
-          <div class="card-body">
-            <div class="tips-list">
-              <div class="tip-item">
-                <i class="fas fa-check-circle"></i>
-                <p>Mensagens SMS suportam até 160 caracteres por mensagem</p>
-              </div>
-              <div class="tip-item">
-                <i class="fas fa-check-circle"></i>
-                <p>Personalize sua mensagem para aumentar o engajamento</p>
-              </div>
-              <div class="tip-item">
-                <i class="fas fa-check-circle"></i>
-                <p>Teste sua campanha enviando para poucos contatos primeiro</p>
-              </div>
-              <div class="tip-item">
-                <i class="fas fa-check-circle"></i>
-                <p>Evite enviar mensagens em horários inadequados</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
+    </form>
+
   </div>
+ 
+   </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
-  name: 'CriarCampanha',
-  
-  components: {
-    navegacao
-  },
+  name: 'EnviarSMS',
+  components: { AppLayout },
 
   data() {
     return {
       isSubmitting: false,
       isLoadingCategories: false,
       isLoadingContacts: false,
-      modoEdicao: false,
-      
+
       form: {
         name: '',
         message_body: '',
-        type: 'instant', // instant ou scheduled
+        type: 'instant',
         scheduled_at: '',
-        target_type: 'all', // all, category, selected
+        target_type: 'all',
         target_category_id: '',
         client_ids: []
       },
@@ -470,21 +299,20 @@ export default {
       categorias: [],
       contatos: [],
       contatosDisponiveis: [],
-      buscaContato: '',
-      caracteresPorSMS: 160,
-      custoPorSMS: 2
+      buscaContato: ''
     };
   },
 
   computed: {
-    caracteresRestantes() {
-      return this.caracteresPorSMS - this.form.message_body.length;
-    },
-
     dataHoraMinima() {
       const agora = new Date();
-      agora.setMinutes(agora.getMinutes() + 5); // Mínimo 5 minutos no futuro
+      agora.setMinutes(agora.getMinutes() + 5);
       return agora.toISOString().slice(0, 16);
+    },
+
+    labelBotao() {
+      if (this.isSubmitting) return this.form.type === 'instant' ? 'Enviando...' : 'Agendando...';
+      return this.form.type === 'instant' ? 'Enviar Agora' : 'Agendar Envio';
     }
   },
 
@@ -492,208 +320,84 @@ export default {
     async fetchCategorias() {
       this.isLoadingCategories = true;
       const token = localStorage.getItem('auth_token');
-
       try {
-        const response = await axios.get('https://api.devsms.online/api/v1/categories', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
+        const res = await axios.get('https://api.devsms.online/api/v1/categories', {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         });
-
-        // Suporta tanto dados paginados quanto diretos
-        if (response.data.data && response.data.data.data) {
-          this.categorias = response.data.data.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          this.categorias = response.data.data;
-        } else {
-          this.categorias = [];
-        }
-
-        console.log('✅ Categorias carregadas:', this.categorias.length);
-
-      } catch (error) {
-        console.error('❌ Erro ao buscar categorias:', error);
-      } finally {
-        this.isLoadingCategories = false;
-      }
+        if (res.data.data?.data) this.categorias = res.data.data.data;
+        else if (Array.isArray(res.data.data)) this.categorias = res.data.data;
+        else this.categorias = [];
+      } catch (e) { console.error(e); }
+      finally { this.isLoadingCategories = false; }
     },
 
     async fetchContatos() {
       this.isLoadingContacts = true;
       const token = localStorage.getItem('auth_token');
-
       try {
-        const response = await axios.get('https://api.devsms.online/api/v1/clients', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
+        const res = await axios.get('https://api.devsms.online/api/v1/clients', {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         });
-
-        // Suporta dados paginados
-        if (response.data.data && response.data.data.data) {
-          this.contatos = response.data.data.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          this.contatos = response.data.data;
-        } else {
-          this.contatos = [];
-        }
-
+        if (res.data.data?.data) this.contatos = res.data.data.data;
+        else if (Array.isArray(res.data.data)) this.contatos = res.data.data;
+        else this.contatos = [];
         this.contatosDisponiveis = this.contatos;
-        console.log('✅ Contatos carregados:', this.contatos.length);
-
-      } catch (error) {
-        console.error('❌ Erro ao buscar contatos:', error);
-      } finally {
-        this.isLoadingContacts = false;
-      }
+      } catch (e) { console.error(e); }
+      finally { this.isLoadingContacts = false; }
     },
 
     buscarContatos() {
-      const busca = this.buscaContato.toLowerCase();
-      
-      if (!busca) {
-        this.contatosDisponiveis = this.contatos;
-        return;
-      }
-
-      this.contatosDisponiveis = this.contatos.filter(contato => 
-        contato.name.toLowerCase().includes(busca) ||
-        contato.phone.includes(busca)
-      );
+      const q = this.buscaContato.toLowerCase();
+      this.contatosDisponiveis = q
+        ? this.contatos.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q))
+        : this.contatos;
     },
 
-    async salvarCampanha() {
+    async enviarSMS() {
       if (this.isSubmitting) return;
-
-      // Validações
-      if (!this.form.name.trim()) {
-        alert('Por favor, informe o nome da campanha.');
-        return;
-      }
-
-      if (!this.form.message_body.trim()) {
-        alert('Por favor, escreva a mensagem da campanha.');
-        return;
-      }
-
-      if (this.form.type === 'scheduled' && !this.form.scheduled_at) {
-        alert('Por favor, selecione a data e hora do envio.');
-        return;
-      }
-
-      if (this.form.target_type === 'category' && !this.form.target_category_id) {
-        alert('Por favor, selecione uma categoria.');
-        return;
-      }
-
-      if (this.form.target_type === 'selected' && this.form.client_ids.length === 0) {
-        alert('Por favor, selecione pelo menos um contato.');
-        return;
-      }
+      if (!this.form.name.trim())         { alert('Informe o nome da campanha.'); return; }
+      if (!this.form.message_body.trim()) { alert('Escreva a mensagem.'); return; }
+      if (this.form.type === 'scheduled' && !this.form.scheduled_at) { alert('Selecione a data e hora.'); return; }
+      if (this.form.target_type === 'category' && !this.form.target_category_id) { alert('Selecione uma categoria.'); return; }
+      if (this.form.target_type === 'selected' && !this.form.client_ids.length)  { alert('Selecione pelo menos um contato.'); return; }
 
       this.isSubmitting = true;
       const token = localStorage.getItem('auth_token');
 
       try {
-        // Montar payload baseado no tipo
-        let payload = {
-          name: this.form.name,
+        const payload = {
+          name:         this.form.name,
           message_body: this.form.message_body,
-          type: this.form.type,
-          target_type: this.form.target_type
+          type:         this.form.type,
+          target_type:  this.form.target_type
         };
+        if (this.form.type === 'scheduled')       payload.scheduled_at       = this.form.scheduled_at;
+        if (this.form.target_type === 'category') payload.target_category_id = this.form.target_category_id;
+        if (this.form.target_type === 'selected') payload.client_ids         = this.form.client_ids;
 
-        // Adicionar scheduled_at se for agendado
-        if (this.form.type === 'scheduled') {
-          payload.scheduled_at = this.form.scheduled_at;
-        }
+        const createRes = await axios.post('https://api.devsms.online/api/v1/campaigns', payload, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        });
 
-        // Adicionar campos específicos do target_type
-        if (this.form.target_type === 'category') {
-          payload.target_category_id = this.form.target_category_id;
-        } else if (this.form.target_type === 'selected') {
-          payload.client_ids = this.form.client_ids;
-        }
+        const campanhaId = createRes.data.data?.id || createRes.data?.id;
 
-        console.log('📤 Enviando payload:', payload);
-
-        const response = await axios.post(
-          'https://api.devsms.online/api/v1/campaigns',
-          payload,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        console.log('✅ Resposta:', response.data);
-
-        alert('✅ Campanha criada com sucesso!');
-        this.$router.push({ name: 'Lista_campanhas' });
-
-      } catch (error) {
-        console.error('❌ Erro ao criar campanha:', error);
-        
-        if (error.response?.status === 401) {
-          localStorage.removeItem('auth_token');
-          this.$router.push('/login');
-        } else if (error.response?.data?.message) {
-          alert('Erro: ' + error.response.data.message);
+        if (this.form.type === 'instant' && campanhaId) {
+          await axios.post(`https://api.devsms.online/api/v1/campaigns/${campanhaId}/send`, {}, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+          });
+          alert('✅ SMS enviado com sucesso!');
         } else {
-          alert('Erro ao criar campanha. Por favor, tente novamente.');
+          alert('✅ SMS agendado com sucesso!');
         }
+
+        this.$router.push({ name: 'Lista_campanhas' });
+      } catch (error) {
+        console.error(error);
+        if (error.response?.status === 401) { localStorage.removeItem('auth_token'); this.$router.push('/login'); }
+        else alert('Erro: ' + (error.response?.data?.message || 'Tente novamente.'));
       } finally {
         this.isSubmitting = false;
       }
-    },
-
-    contarCaracteres() {
-      // Atualiza contador em tempo real
-    },
-
-    calcularNumeroSMS() {
-      if (!this.form.message_body) return 0;
-      return Math.ceil(this.form.message_body.length / this.caracteresPorSMS);
-    },
-
-    calcularDestinatarios() {
-      if (this.form.target_type === 'all') {
-        return this.contatos.length || 0;
-      } else if (this.form.target_type === 'category') {
-        const cat = this.categorias.find(c => c.id === this.form.target_category_id);
-        return cat ? cat.clients_count : 0;
-      } else if (this.form.target_type === 'selected') {
-        return this.form.client_ids.length;
-      }
-      return 0;
-    },
-
-    calcularTotalSMS() {
-      return this.calcularDestinatarios() * this.calcularNumeroSMS();
-    },
-
-    calcularCusto() {
-      return (this.calcularTotalSMS() * this.custoPorSMS).toFixed(2);
-    },
-
-    getTargetLabel() {
-      const labels = {
-        all: 'Todos os Contatos',
-        category: 'Por Categoria',
-        selected: 'Contatos Específicos'
-      };
-      return labels[this.form.target_type] || 'Não definido';
-    },
-
-    formatarDataHora(dataHora) {
-      if (!dataHora) return '-';
-      const date = new Date(dataHora);
-      return date.toLocaleString('pt-BR');
     }
   },
 
@@ -708,86 +412,88 @@ export default {
 :root {
   --primary: #6366f1;
   --primary-dark: #4f46e5;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --gray-50: #f9fafb;
+  --gray-50:  #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
   --gray-600: #4b5563;
   --gray-700: #374151;
   --gray-900: #111827;
 }
 
-.create-campaign-page {
-  padding: 2rem;
-  max-width: 1400px;
+/* ── Página ── */
+.send-sms-page {
+  padding: 1.75rem 2rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Header */
+/* ── Header ── */
 .page-header {
+  display: flex;
+  align-items: center;
   background: white;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  padding: 1.25rem 1.75rem;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  margin-bottom: 1.5rem;
 }
 
-.header-content {
+.header-left {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.btn-back {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--gray-100);
+.header-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gray-700);
-  transition: all 0.3s;
-}
-
-.btn-back:hover {
-  background: var(--primary);
-  color: white;
-  transform: translateX(-2px);
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(99,102,241,.35);
+  flex-shrink: 0;
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .page-subtitle {
+  font-size: 0.813rem;
   color: var(--gray-600);
-  font-size: 0.875rem;
-  margin: 0.25rem 0 0 0;
+  margin: 0.2rem 0 0;
 }
 
-/* Grid Layout */
+/* ── Grid 2 colunas ── */
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 2rem;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  align-items: start;
 }
 
-/* Cards */
-.card-enhanced {
+/* ── Colunas ── */
+.col-left,
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Cards ── */
+.card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
   overflow: hidden;
 }
 
@@ -795,509 +501,332 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
+  padding: 1.125rem 1.5rem;
   border-bottom: 1px solid var(--gray-200);
   background: var(--gray-50);
 }
 
 .card-icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: white;
+  flex-shrink: 0;
 }
 
 .card-title {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--gray-900);
   margin: 0;
 }
 
-.card-body {
-  padding: 1.5rem;
-}
+.card-body { padding: 1.5rem; }
 
-/* Form */
-.form-group {
-  margin-bottom: 1.5rem;
-}
+/* ── Form ── */
+.form-group { margin-bottom: 1.125rem; }
+.mb-0 { margin-bottom: 0 !important; }
 
 .form-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--gray-700);
-  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  font-size: 0.813rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 0.5rem;
 }
+
+.req { color: #ef4444; }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border: 2px solid var(--gray-200);
-  border-radius: 8px;
+  border-radius: 9px;
   font-size: 0.9375rem;
-  transition: all 0.3s;
+  color: var(--gray-900);
+  background: white;
+  font-family: inherit;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 180px;
+  line-height: 1.6;
 }
 
 .form-hint {
-color: var(--gray-600);
-font-size: 0.75rem;
-margin-top: 0.25rem;
-display: flex;
-align-items: center;
-gap: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  margin-top: 0.4rem;
 }
-.message-info {
-display: flex;
-justify-content: space-between;
-margin-top: 0.5rem;
-font-size: 0.875rem;
+
+/* ── Tipo de envio ── */
+.type-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
 }
-.char-count,
-.sms-count {
-display: flex;
-align-items: center;
-gap: 0.5rem;
-color: var(--gray-600);
-}
-.text-danger {
-color: var(--danger) !important;
-}
-/* Tipo de Campanha */
-.campaign-types {
-display: grid;
-grid-template-columns: repeat(2, 1fr);
-gap: 1rem;
-margin-bottom: 1.5rem;
-}
+
 .type-card {
-padding: 1.25rem;
-border: 2px solid var(--gray-200);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.3s;
-position: relative;
-display: flex;
-flex-direction: column;
-align-items: center;
-text-align: center;
-gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+  background: white;
 }
-.type-card input[type="radio"] {
-position: absolute;
-opacity: 0;
+
+.type-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.type-card:hover { border-color: #6366f1; background: #f5f5ff; }
+.type-selected { border-color: #6366f1 !important; background: rgba(99,102,241,.07) !important; }
+
+.type-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
-.type-card:hover {
-background: var(--gray-50);
-border-color: var(--primary);
+
+.type-card-icon.instant   { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.type-card-icon.scheduled { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+.type-card-info { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
+.type-card-info strong { font-size: 0.9rem; font-weight: 700; color: var(--gray-900); }
+.type-card-info small  { font-size: 0.75rem; color: var(--gray-600); }
+
+.type-check { color: #6366f1; font-size: 1rem; opacity: 0; transition: opacity .2s; }
+.type-selected .type-check { opacity: 1; }
+
+.scheduled-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(99,102,241,.05);
+  border: 2px solid #6366f1;
+  border-radius: 9px;
+  animation: slideDown .2s ease;
 }
-.type-selected {
-background: rgba(99, 102, 241, 0.1);
-border-color: var(--primary);
+
+/* ── Público alvo ── */
+.target-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
 }
-.type-icon {
-width: 50px;
-height: 50px;
-border-radius: 50%;
-background: var(--primary);
-color: white;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 1.5rem;
-}
-.type-info h4 {
-font-size: 1rem;
-font-weight: 600;
-color: var(--gray-900);
-margin: 0;
-}
-.type-info p {
-font-size: 0.875rem;
-color: var(--gray-600);
-margin: 0.25rem 0 0 0;
-}
-.check-icon {
-position: absolute;
-top: 0.75rem;
-right: 0.75rem;
-color: var(--primary);
-opacity: 0;
-transition: opacity 0.3s;
-}
-.type-selected .check-icon {
-opacity: 1;
-}
-.scheduled-section {
-margin-top: 1.5rem;
-padding: 1.25rem;
-background: var(--gray-50);
-border-radius: 8px;
-border: 2px solid var(--primary);
-}
-/* Público Alvo */
-.target-types {
-display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 1rem;
-margin-bottom: 1.5rem;
-}
+
 .target-card {
-padding: 1rem;
-border: 2px solid var(--gray-200);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.3s;
-position: relative;
-display: flex;
-flex-direction: column;
-align-items: center;
-text-align: center;
-gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+  background: white;
 }
-.target-card input[type="radio"] {
-position: absolute;
-opacity: 0;
+
+.target-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.target-card:hover { border-color: #6366f1; background: #f5f5ff; }
+.target-selected { border-color: #6366f1 !important; background: rgba(99,102,241,.07) !important; }
+
+.target-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
-.target-card:hover {
-background: var(--gray-50);
-border-color: var(--primary);
-}
-.target-selected {
-background: rgba(99, 102, 241, 0.1);
-border-color: var(--primary);
-}
-.target-icon {
-width: 40px;
-height: 40px;
-border-radius: 50%;
-background: var(--primary);
-color: white;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 1.25rem;
-}
-.target-info h4 {
-font-size: 0.9375rem;
-font-weight: 600;
-color: var(--gray-900);
-margin: 0;
-}
-.target-info p {
-font-size: 0.75rem;
-color: var(--gray-600);
-margin: 0.25rem 0 0 0;
-}
+
+.target-card-info { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
+.target-card-info strong { font-size: 0.9rem; font-weight: 700; color: var(--gray-900); }
+.target-card-info small  { font-size: 0.75rem; color: var(--gray-600); }
+
+.target-check { color: #6366f1; font-size: 1rem; opacity: 0; transition: opacity .2s; }
+.target-selected .target-check { opacity: 1; }
+
 .target-section {
-margin-top: 1.5rem;
-padding: 1.25rem;
-background: var(--gray-50);
-border-radius: 8px;
-border: 2px solid var(--primary);
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(99,102,241,.05);
+  border: 2px solid #6366f1;
+  border-radius: 9px;
+  animation: slideDown .2s ease;
 }
-/* Busca de Contatos */
-.search-contacts {
-position: relative;
-margin-bottom: 1rem;
+
+/* ── Busca ── */
+.search-wrap { position: relative; margin-bottom: 0.75rem; }
+.search-ico {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+  pointer-events: none;
+  font-size: 0.875rem;
 }
-.search-icon {
-position: absolute;
-right: 1rem;
-top: 50%;
-transform: translateY(-50%);
-color: var(--gray-400);
-}
-/* Lista de Contatos */
+.search-input { padding-left: 2.5rem !important; }
+
+/* ── Lista de contatos ── */
 .contacts-list {
-max-height: 400px;
-overflow-y: auto;
-display: flex;
-flex-direction: column;
-gap: 0.5rem;
-margin-top: 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
 }
+.contacts-list::-webkit-scrollbar { width: 4px; }
+.contacts-list::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+
 .contact-item {
-display: flex;
-align-items: center;
-gap: 1rem;
-padding: 1rem;
-border: 2px solid var(--gray-200);
-border-radius: 8px;
-cursor: pointer;
-transition: all 0.3s;
-position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  background: white;
 }
-.contact-item:hover {
-background: var(--gray-50);
-border-color: var(--primary);
-}
-.contact-selected {
-background: rgba(99, 102, 241, 0.1);
-border-color: var(--primary);
-}
-.contact-item input[type="checkbox"] {
-width: 18px;
-height: 18px;
-cursor: pointer;
-}
+.contact-item:hover { border-color: #6366f1; background: #f5f5ff; }
+.contact-selected { border-color: #6366f1 !important; background: rgba(99,102,241,.07) !important; }
+.contact-item input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+
 .contact-avatar {
-width: 40px;
-height: 40px;
-border-radius: 50%;
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: white;
-display: flex;
-align-items: center;
-justify-content: center;
-font-weight: 600;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
-.contact-info {
-flex: 1;
+
+.contact-info { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.contact-name  { font-size: 0.85rem; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-phone { font-size: 0.75rem; color: var(--gray-600); }
+
+.contact-check { color: #6366f1; font-size: 0.875rem; opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+.contact-selected .contact-check { opacity: 1; }
+
+.selected-badge {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  background: rgba(99,102,241,.12);
+  border-radius: 8px;
+  text-align: center;
+  color: #4f46e5;
+  font-weight: 700;
+  font-size: 0.813rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
 }
-.contact-info h5 {
-font-size: 0.9375rem;
-font-weight: 600;
-color: var(--gray-900);
-margin: 0;
+
+/* ── Loading / Empty ── */
+.loading-sm, .empty-sm { padding: 1.25rem; text-align: center; color: var(--gray-600); font-size: 0.875rem; }
+.spinner-sm { width: 26px; height: 26px; border: 3px solid var(--gray-200); border-top-color: #6366f1; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 0.5rem; }
+.empty-sm i { font-size: 1.75rem; color: var(--gray-400); display: block; margin-bottom: 0.4rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Barra de ações ── */
+.action-bar {
+  display: flex;
+  gap: 0.875rem;
 }
-.contact-info p {
-font-size: 0.8125rem;
-color: var(--gray-600);
-margin: 0.25rem 0 0 0;
-}
-.contact-selected .check-icon {
-opacity: 1;
-}
-.selected-count {
-margin-top: 1rem;
-padding: 0.75rem;
-background: rgba(99, 102, 241, 0.1);
-border-radius: 8px;
-text-align: center;
-color: var(--primary);
-font-weight: 500;
-font-size: 0.875rem;
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 0.5rem;
-}
-/* Resumo */
-.sticky-card {
-position: sticky;
-top: 2rem;
-}
-.summary-list {
-display: flex;
-flex-direction: column;
-gap: 1rem;
-}
-.summary-item {
-display: flex;
-align-items: flex-start;
-gap: 0.75rem;
-padding: 0.75rem;
-background: var(--gray-50);
-border-radius: 8px;
-}
-.summary-item.highlight {
-background: rgba(99, 102, 241, 0.1);
-border: 2px solid var(--primary);
-}
-.summary-item i {
-color: var(--primary);
-margin-top: 0.25rem;
-}
-.summary-item > div {
-flex: 1;
-display: flex;
-flex-direction: column;
-gap: 0.25rem;
-}
-.summary-label {
-font-size: 0.75rem;
-color: var(--gray-600);
-text-transform: uppercase;
-font-weight: 500;
-}
-.summary-value {
-font-size: 0.9375rem;
-color: var(--gray-900);
-font-weight: 600;
-}
-.summary-value-big {
-font-size: 1.5rem;
-color: var(--primary);
-font-weight: 700;
-}
-.cost-estimate {
-margin-top: 1.5rem;
-padding: 1.25rem;
-background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-border-radius: 12px;
-text-align: center;
-color: white;
-}
-.cost-header {
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 0.5rem;
-font-size: 0.875rem;
-font-weight: 600;
-margin-bottom: 0.5rem;
-}
-.cost-value {
-font-size: 2rem;
-font-weight: 700;
-margin-bottom: 0.5rem;
-}
-.cost-note {
-font-size: 0.75rem;
-opacity: 0.9;
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 0.25rem;
-}
-/* Dicas */
-.tips-list {
-display: flex;
-flex-direction: column;
-gap: 1rem;
-}
-.tip-item {
-display: flex;
-align-items: flex-start;
-gap: 0.75rem;
-}
-.tip-item i {
-color: var(--success);
-margin-top: 0.25rem;
-}
-.tip-item p {
-font-size: 0.875rem;
-color: var(--gray-600);
-margin: 0;
-line-height: 1.5;
-}
-/* Loading States */
-.loading-sm,
-.empty-sm {
-padding: 2rem;
-text-align: center;
-color: var(--gray-600);
-}
-.spinner-sm {
-width: 30px;
-height: 30px;
-border: 3px solid var(--gray-200);
-border-top-color: var(--primary);
-border-radius: 50%;
-animation: spin 1s linear infinite;
-margin: 0 auto 0.75rem;
-}
-@keyframes spin {
-to { transform: rotate(360deg); }
-}
-.empty-sm i {
-font-size: 2rem;
-color: var(--gray-400);
-margin-bottom: 0.5rem;
-}
-/* Botões de Ação */
-.form-actions {
-display: flex;
-justify-content: flex-end;
-gap: 1rem;
-margin-top: 2rem;
-}
+
 .btn {
-padding: 0.75rem 1.5rem;
-border-radius: 8px;
-font-weight: 500;
-display: flex;
-align-items: center;
-gap: 0.5rem;
-cursor: pointer;
-border: none;
-transition: all 0.3s;
-font-size: 0.9375rem;
-text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 0.938rem;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+  white-space: nowrap;
 }
+
 .btn-cancel {
-background: white;
-color: var(--gray-700);
-border: 2px solid var(--gray-300);
+  background: white;
+  color: var(--gray-700);
+  border: 2px solid var(--gray-300);
+  flex: 0 0 auto;
 }
-.btn-cancel:hover {
-background: var(--gray-50);
-border-color: var(--gray-400);
+.btn-cancel:hover { background: var(--gray-100); }
+
+.btn-send {
+  flex: 1;
+  justify-content: center;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  box-shadow: 0 3px 10px rgba(99,102,241,.35);
 }
-.btn-save {
-background: var(--primary);
-color: white;
+.btn-send:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(99,102,241,.5); }
+.btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Animações ── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.btn-save:hover:not(:disabled) {
-background: var(--primary-dark);
-transform: translateY(-1px);
-box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-.btn-save:disabled {
-opacity: 0.6;
-cursor: not-allowed;
-}
-/* Animations */
-.fade-in {
-animation: fadeIn 0.5s ease-in;
-}
+
+.fade-in { animation: fadeIn .4s ease; }
 @keyframes fadeIn {
-from {
-opacity: 0;
-transform: translateY(10px);
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-to {
-opacity: 1;
-transform: translateY(0);
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .action-bar { flex-direction: column-reverse; }
+  .btn-cancel, .btn-send { width: 100%; justify-content: center; }
 }
-}
-/* Responsive */
-@media (max-width: 1024px) {
-.content-grid {
-grid-template-columns: 1fr;
-}
-.sticky-card {
-position: static;
-}
-}
-@media (max-width: 768px) {
-.create-campaign-page {
-padding: 1rem;
-}
-.campaign-types,
-.target-types {
-grid-template-columns: 1fr;
-}
-.form-actions {
-flex-direction: column;
-}
-.btn {
-width: 100%;
-justify-content: center;
-}
+
+@media (max-width: 480px) {
+  .send-sms-page { padding: 1rem; }
 }
 </style>

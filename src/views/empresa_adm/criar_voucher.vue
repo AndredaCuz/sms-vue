@@ -1,6 +1,6 @@
 <template>
 
-    <navegacao/>
+    <AppLayout>
   <div class="criar-voucher-page">
     <!-- Header -->
     <div class="page-header">
@@ -299,17 +299,20 @@
   </div>
 </div>
 </div>
+
+</AppLayout>
 </template>
 <script>
 import axios from 'axios';
 
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'CriarVoucher',
 
   components:{
-    navegacao
+    AppLayout
   },
   data() {
     return {

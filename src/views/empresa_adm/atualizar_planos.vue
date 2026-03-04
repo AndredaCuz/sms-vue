@@ -1,5 +1,10 @@
 <template>
-  <navegacao/>
+
+
+
+
+
+<AppLayout>
 
   <div class="update-plan-page fade-in">
     <!-- Header -->
@@ -361,17 +366,19 @@
       </div>
     </div>
   </div>
+</AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'AtualizarPlano',
   
   components: {
-    navegacao
+   AppLayout
   },
 
   data() {

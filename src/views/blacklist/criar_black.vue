@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
 
   <div class="blacklist-page fade-in">
     <!-- Header -->
@@ -25,38 +25,143 @@
       <div class="main-column">
         <form @submit.prevent="salvarBlacklist">
           
-          <!-- Informações do Bloqueio -->
+          <!-- Seleção de Contato ou Número Manual -->
           <div class="card">
             <div class="card-header">
               <div class="card-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
                 <i class="fas fa-phone-slash"></i>
               </div>
+              <h3 class="card-title">Selecione um Contato ou Digite o Número</h3>
+            </div>
+
+            <div class="card-body">
+              <!-- Abas de Seleção -->
+              <div class="tabs">
+                <button 
+                  type="button"
+                  class="tab-button"
+                  :class="{ active: tipoEntrada === 'contato' }"
+                  @click="tipoEntrada = 'contato'"
+                >
+                  <i class="fas fa-user"></i> Selecionar Contato
+                </button>
+                <button 
+                  type="button"
+                  class="tab-button"
+                  :class="{ active: tipoEntrada === 'manual' }"
+                  @click="tipoEntrada = 'manual'"
+                >
+                  <i class="fas fa-keyboard"></i> Digitar Número
+                </button>
+              </div>
+
+              <!-- Aba Selecionar Contato -->
+              <div v-if="tipoEntrada === 'contato'" class="tab-content">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-search"></i> Buscar Contato
+                  </label>
+                  <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                      v-model="buscarContato"
+                      type="text"
+                      class="form-input search-input"
+                      placeholder="Buscar por nome, telefone ou email..."
+                    />
+                    <button 
+                      v-if="buscarContato"
+                      type="button"
+                      class="search-clear"
+                      @click="buscarContato = ''"
+                      title="Limpar busca"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <small class="form-hint">
+                    <i class="fas fa-info-circle"></i>
+                    Digite o nome, telefone ou email do contato para buscar
+                  </small>
+                </div>
+
+                <div v-if="carregandoContatos" class="loading-spinner">
+                  <div class="spinner-small"></div>
+                  <p>Buscando contatos...</p>
+                </div>
+
+                <div v-else-if="contatosBuscados.length === 0" class="empty-search">
+                  <i class="fas fa-inbox"></i>
+                  <p>{{ buscarContato ? 'Nenhum contato encontrado' : 'Digite para buscar contatos' }}</p>
+                </div>
+
+                <div v-else class="contacts-list">
+                  <div 
+                    v-for="contato in contatosBuscados" 
+                    :key="contato.id"
+                    class="contact-select-item"
+                    @click="selecionarContato(contato)"
+                    :class="{ selected: form.phone === contato.phone }"
+                  >
+                    <div class="contact-avatar" :style="{ background: contato.category?.color || '#3b82f6' }">
+                      {{ getInitials(contato.name) }}
+                    </div>
+                    <div class="contact-info">
+                      <h4>{{ contato.name }}</h4>
+                      <p class="contact-phone">
+                        <i class="fas fa-phone"></i> {{ formatPhone(contato.phone) }}
+                      </p>
+                      <p v-if="contato.email" class="contact-email">
+                        <i class="fas fa-envelope"></i> {{ contato.email }}
+                      </p>
+                    </div>
+                    <div class="contact-category">
+                      <span v-if="contato.category" class="category-badge">
+                        {{ contato.category.name }}
+                      </span>
+                      <span v-else class="no-category">Sem categoria</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Aba Digitar Número -->
+              <div v-if="tipoEntrada === 'manual'" class="tab-content">
+                <div class="form-group">
+                  <label class="form-label required">
+                    <i class="fas fa-phone"></i> Número de Telefone
+                  </label>
+                  <input 
+                    v-model="form.phone" 
+                    class="form-input" 
+                    placeholder="Ex: 923456789"
+                    maxlength="9"
+                    @input="formatarTelefone"
+                    required 
+                  />
+                  <small class="form-hint">
+                    <i class="fas fa-info-circle"></i>
+                    Digite apenas os 9 dígitos do número (sem prefixo +244)
+                  </small>
+                  <div v-if="form.phone && form.phone.length === 9" class="phone-preview">
+                    <i class="fas fa-check-circle"></i>
+                    Formato completo: +244 {{ form.phone }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Informações do Bloqueio -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
               <h3 class="card-title">Informações do Bloqueio</h3>
             </div>
 
             <div class="card-body">
-              <div class="form-group">
-                <label class="form-label required">
-                  <i class="fas fa-phone"></i> Número de Telefone
-                </label>
-                <input 
-                  v-model="form.phone" 
-                  class="form-input" 
-                  placeholder="Ex: 923456789"
-                  maxlength="9"
-                  @input="formatarTelefone"
-                  required 
-                />
-                <small class="form-hint">
-                  <i class="fas fa-info-circle"></i>
-                  Digite apenas os 9 dígitos do número (sem prefixo +244)
-                </small>
-                <div v-if="form.phone && form.phone.length === 9" class="phone-preview">
-                  <i class="fas fa-check-circle"></i>
-                  Formato completo: +244 {{ form.phone }}
-                </div>
-              </div>
-
               <div class="form-group">
                 <label class="form-label required">
                   <i class="fas fa-exclamation-triangle"></i> Motivo do Bloqueio
@@ -71,9 +176,6 @@
                   <option value="legal">Questões Legais</option>
                   <option value="other">Outro Motivo</option>
                 </select>
-                <small class="form-hint">
-                  Selecione o motivo principal do bloqueio
-                </small>
               </div>
 
               <div class="form-group">
@@ -115,10 +217,10 @@
 
           <!-- Botões de Ação -->
           <div class="form-actions">
-            <router-link :to="{ name: 'Lista_black' }" class="btn btn-cancel">
+            <router-link :to="{ name: 'Criar_black' }" class="btn btn-cancel">
               <i class="fas fa-times"></i> Cancelar
             </router-link>
-            <button class="btn btn-danger" type="submit" :disabled="isSubmitting">
+            <button class="btn btn-danger" type="submit" :disabled="isSubmitting || !form.phone || !form.reason">
               <i class="fas fa-spinner fa-spin" v-if="isSubmitting"></i>
               <i class="fas fa-ban" v-else></i>
               {{ isSubmitting ? 'Bloqueando...' : 'Adicionar à Blacklist' }}
@@ -251,23 +353,30 @@
       </div>
     </div>
   </div>
+</AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'CriarBlacklist',
   
   components: {
-    navegacao
+    AppLayout
   },
 
   data() {
     return {
       isSubmitting: false,
       modoEdicao: false,
+      
+      tipoEntrada: 'contato',
+      buscarContato: '',
+      contatosBuscados: [],
+      carregandoContatos: false,
+      searchTimer: null,
       
       form: {
         phone: '',
@@ -288,11 +397,59 @@ export default {
     }
   },
 
+  watch: {
+    buscarContato(newVal) {
+      clearTimeout(this.searchTimer);
+      if (newVal.trim()) {
+        this.searchTimer = setTimeout(() => {
+          this.buscarContatos();
+        }, 500);
+      } else {
+        this.contatosBuscados = [];
+      }
+    }
+  },
+
   methods: {
+    async buscarContatos() {
+      if (!this.buscarContato.trim()) {
+        this.contatosBuscados = [];
+        return;
+      }
+
+      this.carregandoContatos = true;
+      const token = localStorage.getItem('auth_token');
+
+      try {
+        const response = await axios.get('https://api.devsms.online/api/v1/clients', {
+          params: {
+            search: this.buscarContato.trim(),
+            per_page: 20
+          },
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        this.contatosBuscados = response.data.data?.data || [];
+      } catch (error) {
+        console.error('Erro ao buscar contatos:', error);
+        this.contatosBuscados = [];
+      } finally {
+        this.carregandoContatos = false;
+      }
+    },
+
+    selecionarContato(contato) {
+      this.form.phone = contato.phone;
+      this.buscarContato = '';
+      this.contatosBuscados = [];
+    },
+
     async salvarBlacklist() {
       if (this.isSubmitting) return;
 
-      // Validações
       if (!this.form.phone.trim()) {
         alert('Por favor, informe o número de telefone.');
         return;
@@ -313,7 +470,7 @@ export default {
 
       try {
         const payload = {
-          phone: this.form.phone.replace(/\D/g, ''), // Remove caracteres não numéricos
+          phone: this.form.phone.replace(/\D/g, ''),
           reason: this.form.reason,
           notes: this.form.notes.trim() || null
         };
@@ -357,14 +514,10 @@ export default {
     },
 
     formatarTelefone() {
-      // Remove tudo que não é dígito
       let valor = this.form.phone.replace(/\D/g, '');
-      
-      // Limita a 9 dígitos
       if (valor.length > 9) {
         valor = valor.substring(0, 9);
       }
-      
       this.form.phone = valor;
     },
 
@@ -379,6 +532,18 @@ export default {
         'other': 'Outro Motivo'
       };
       return motivos[this.form.reason] || 'Não selecionado';
+    },
+
+    getInitials(name) {
+      if (!name) return '??';
+      const parts = name.split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    },
+
+    formatPhone(phone) {
+      if (!phone) return '-';
+      return phone.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
     }
   }
 };
@@ -508,6 +673,47 @@ export default {
   padding: 1.5rem;
 }
 
+/* Abas */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.tab-button {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: var(--gray-600);
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: -2px;
+}
+
+.tab-button:hover {
+  color: var(--primary);
+}
+
+.tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Form */
 .form-group {
   margin-bottom: 1.5rem;
@@ -536,6 +742,7 @@ export default {
   border-radius: 8px;
   font-size: 0.9375rem;
   transition: all 0.3s;
+  font-family: inherit;
 }
 
 .form-input:focus {
@@ -553,6 +760,43 @@ export default {
   gap: 0.25rem;
 }
 
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.search-clear:hover {
+  color: var(--gray-700);
+}
+
 .phone-preview {
   margin-top: 0.5rem;
   padding: 0.75rem;
@@ -563,6 +807,132 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Contatos */
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.contact-select-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.contact-select-item:hover {
+  background: var(--gray-100);
+  border-color: var(--primary);
+}
+
+.contact-select-item.selected {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+}
+
+.contact-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9375rem;
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.contact-phone,
+.contact-email {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.contact-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.category-badge,
+.no-category {
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.category-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+}
+
+.no-category {
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 2rem;
+}
+
+.spinner-small {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-search {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.empty-search i {
+  font-size: 2rem;
+  color: var(--gray-300);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.empty-search p {
+  color: var(--gray-600);
+  margin: 0;
 }
 
 /* Alert */
@@ -605,7 +975,7 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-/* Resumo */
+/* Sidebar */
 .sticky-card {
   position: sticky;
   top: 2rem;
@@ -757,6 +1127,11 @@ export default {
   text-decoration: none;
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-cancel {
   background: white;
   color: var(--gray-700);
@@ -779,25 +1154,9 @@ export default {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* Animations */
 .fade-in {
   animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Responsive */
@@ -823,6 +1182,23 @@ export default {
   .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .tabs {
+    flex-direction: column;
+    border-bottom: none;
+  }
+
+  .tab-button {
+    border-bottom: none;
+    border-left: 3px solid transparent;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0;
+  }
+
+  .tab-button.active {
+    border-left-color: var(--primary);
+    border-bottom: none;
   }
 }
 </style>

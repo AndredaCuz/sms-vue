@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
 
   <div class="categories-page fade-in">
     <!-- Header -->
@@ -20,39 +20,6 @@
           <i class="fas fa-plus"></i>
           Nova Categoria
         </button>
-      </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <i class="fas fa-tags"></i>
-        </div>
-        <div class="stat-content">
-          <h3 class="stat-value">{{ categorias.length }}</h3>
-          <p class="stat-label">Total de Categorias</p>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-          <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-content">
-          <h3 class="stat-value">{{ totalClientes }}</h3>
-          <p class="stat-label">Total de Clientes</p>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-          <i class="fas fa-chart-line"></i>
-        </div>
-        <div class="stat-content">
-          <h3 class="stat-value">{{ Math.round(totalClientes / categorias.length) || 0 }}</h3>
-          <p class="stat-label">Média por Categoria</p>
-        </div>
       </div>
     </div>
 
@@ -97,22 +64,20 @@
           <div class="category-stats">
             <div class="stat-item">
               <i class="fas fa-users"></i>
-              <span>{{ categoria.clients_count }} cliente{{ categoria.clients_count !== 1 ? 's' : '' }}</span>
+              <span>{{ categoria.clients_count || 0 }} cliente{{ categoria.clients_count !== 1 ? 's' : '' }}</span>
             </div>
             <div class="stat-item">
               <i class="fas fa-calendar"></i>
               <span>{{ formatarData(categoria.created_at) }}</span>
             </div>
           </div>
-
-          <div class="category-color-info">
-            <span class="color-label">Cor:</span>
-            <span class="color-preview" :style="{ background: categoria.color }"></span>
-            <span class="color-code">{{ categoria.color }}</span>
-          </div>
         </div>
 
         <div class="category-actions">
+          <button @click="abrirModalVisualizarContatos(categoria)" class="btn-action btn-view">
+            <i class="fas fa-eye"></i>
+            Visualizar
+          </button>
           <button @click="editarCategoria(categoria)" class="btn-action btn-edit">
             <i class="fas fa-edit"></i>
             Editar
@@ -120,6 +85,202 @@
           <button @click="excluirCategoria(categoria)" class="btn-action btn-delete">
             <i class="fas fa-trash"></i>
             Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL VISUALIZAR CONTATOS ===== -->
+    <div v-if="mostrarModalVisualizarContatos" class="modal-overlay" @click="fecharModalVisualizarContatos">
+      <div class="modal-content modal-large" @click.stop>
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <div class="modal-header-color" :style="{ background: categoriaSelecionada?.color }"></div>
+            <div>
+              <h2>{{ categoriaSelecionada?.name }}</h2>
+              <p class="modal-subtitle">
+                <i class="fas fa-users"></i> 
+                {{ paginationContatos.total }} contato{{ paginationContatos.total !== 1 ? 's' : '' }}
+              </p>
+            </div>
+          </div>
+          <button @click="fecharModalVisualizarContatos" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Abas -->
+          <div class="tabs">
+            <button 
+              class="tab-button" 
+              :class="{ active: abaAtiva === 'contatos' }"
+              @click="abaAtiva = 'contatos'"
+            >
+              <i class="fas fa-users"></i> Contatos
+            </button>
+            <button 
+              class="tab-button" 
+              :class="{ active: abaAtiva === 'criar' }"
+              @click="abaAtiva = 'criar'"
+            >
+              <i class="fas fa-user-plus"></i> Criar Contato
+            </button>
+          </div>
+
+          <!-- Aba Contatos -->
+          <div v-if="abaAtiva === 'contatos'" class="tab-content">
+            <!-- Barra de pesquisa -->
+            <div class="search-bar">
+              <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input 
+                  type="text" 
+                  v-model="filtrosContatos.busca" 
+                  class="form-input search-input" 
+                  placeholder="Buscar por nome ou telefone..."
+                  @input="onSearchContatosInput"
+                >
+                <button 
+                  v-if="filtrosContatos.busca" 
+                  class="search-clear" 
+                  @click="limparBuscaContatos"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="carregandoContatos" class="loading-state-small">
+              <div class="spinner-small"></div>
+              <p>Carregando contatos...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="contatosDaCategoria.length === 0" class="empty-state-small">
+              <i class="fas fa-inbox"></i>
+              <h4>Nenhum contato encontrado</h4>
+              <p v-if="filtrosContatos.busca">Tente buscar com outros termos</p>
+              <p v-else>Adicione contatos ou crie um novo</p>
+            </div>
+
+            <!-- Lista de Contatos -->
+            <div v-else class="contacts-list">
+              <div v-for="contato in contatosDaCategoria" :key="contato.id" class="contact-item">
+                <div class="contact-avatar" :style="{ background: categoriaSelecionada?.color }">
+                  {{ getInitials(contato.name) }}
+                </div>
+                <div class="contact-info">
+                  <h4>{{ contato.name }}</h4>
+                  <p class="contact-phone">
+                    <i class="fas fa-phone"></i> {{ formatPhone(contato.phone) }}
+                  </p>
+                  <p v-if="contato.email" class="contact-email">
+                    <i class="fas fa-envelope"></i> {{ contato.email }}
+                  </p>
+                </div>
+                <div class="contact-status">
+                  <span :class="['status-badge', contato.status === 'active' ? 'active' : 'inactive']">
+                    <i class="fas fa-circle"></i>
+                    {{ contato.status === 'active' ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Paginação -->
+            <div v-if="paginationContatos.total > paginationContatos.per_page" class="pagination">
+              <button 
+                class="btn-pagination" 
+                :disabled="paginationContatos.current_page === 1"
+                @click="mudarPaginaContatos(paginationContatos.current_page - 1)"
+              >
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              
+              <span class="pagination-info">
+                Página {{ paginationContatos.current_page }} de {{ paginationContatos.last_page }}
+              </span>
+              
+              <button 
+                class="btn-pagination" 
+                :disabled="paginationContatos.current_page === paginationContatos.last_page"
+                @click="mudarPaginaContatos(paginationContatos.current_page + 1)"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Aba Criar Contato -->
+          <div v-if="abaAtiva === 'criar'" class="tab-content">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-user"></i> Nome *
+              </label>
+              <input 
+                v-model="novoContato.name"
+                type="text"
+                class="form-input"
+                placeholder="Digite o nome do contato..."
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-phone"></i> Telefone *
+              </label>
+              <input 
+                v-model="novoContato.phone"
+                type="text"
+                class="form-input"
+                placeholder="Ex: 923456789"
+                maxlength="9"
+                @input="formatarTelefoneCriar"
+                required
+              />
+              <small class="form-hint">Digite apenas 9 dígitos</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-envelope"></i> Email
+              </label>
+              <input 
+                v-model="novoContato.email"
+                type="email"
+                class="form-input"
+                placeholder="seu@email.com"
+              />
+            </div>
+
+            <div v-if="erroAoCriar" class="alert-error">
+              <i class="fas fa-exclamation-circle"></i>
+              {{ erroAoCriar }}
+            </div>
+
+            <div v-if="sucessoCriar" class="alert-success">
+              <i class="fas fa-check-circle"></i>
+              Contato criado com sucesso!
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" @click="fecharModalVisualizarContatos">
+            <i class="fas fa-times"></i> Fechar
+          </button>
+          <button 
+            v-if="abaAtiva === 'criar'"
+            class="btn btn-primary" 
+            @click="criarNovoContato"
+            :disabled="criandoContato || !novoContato.name || !novoContato.phone"
+          >
+            <i class="fas fa-spinner fa-spin" v-if="criandoContato"></i>
+            <i class="fas fa-plus" v-else></i>
+            {{ criandoContato ? 'Criando...' : 'Criar Contato' }}
           </button>
         </div>
       </div>
@@ -188,25 +349,6 @@
                 <span>Preview da Cor</span>
               </div>
             </div>
-
-            <!-- Cores Sugeridas -->
-            <div class="suggested-colors">
-              <p class="colors-label">Cores Sugeridas:</p>
-              <div class="colors-grid">
-                <button 
-                  v-for="cor in coresSugeridas" 
-                  :key="cor"
-                  type="button"
-                  class="color-option"
-                  :style="{ background: cor }"
-                  :class="{ 'color-selected': form.color === cor }"
-                  @click="form.color = cor"
-                  :title="cor"
-                >
-                  <i v-if="form.color === cor" class="fas fa-check"></i>
-                </button>
-              </div>
-            </div>
           </div>
 
           <div class="modal-footer">
@@ -223,17 +365,18 @@
       </div>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../components/navegacao.vue';
+import AppLayout from '../components/AppLayout.vue';
 
 export default {
   name: 'MinhasCategorias',
   
   components: {
-    navegacao
+    AppLayout
   },
 
   data() {
@@ -241,6 +384,7 @@ export default {
       isLoading: true,
       isSubmitting: false,
       mostrarModal: false,
+      mostrarModalVisualizarContatos: false,
       modoEdicao: false,
       categorias: [],
       
@@ -252,31 +396,36 @@ export default {
         company_id: null
       },
 
-      coresSugeridas: [
-        '#FFD700', // Dourado
-        '#FF6B6B', // Vermelho
-        '#4ECDC4', // Turquesa
-        '#45B7D1', // Azul
-        '#96CEB4', // Verde
-        '#FFEAA7', // Amarelo
-        '#DFE6E9', // Cinza
-        '#A29BFE', // Roxo
-        '#FD79A8', // Rosa
-        '#6C5CE7', // Roxo Escuro
-        '#00B894', // Verde Esmeralda
-        '#FDCB6E', // Laranja
-        '#E17055', // Terracota
-        '#74B9FF', // Azul Claro
-        '#A29BFE', // Lavanda
-        '#FF7675'  // Coral
-      ]
-    };
-  },
+      // Modal Visualizar Contatos
+      categoriaSelecionada: null,
+      abaAtiva: 'contatos',
+      contatosDaCategoria: [],
+      carregandoContatos: false,
+      
+      // Paginação e filtros para contatos da categoria
+      paginationContatos: {
+        current_page: 1,
+        per_page: 10,
+        total: 0,
+        last_page: 1,
+        from: 0,
+        to: 0
+      },
+      filtrosContatos: {
+        busca: ''
+      },
+      searchTimerContatos: null,
 
-  computed: {
-    totalClientes() {
-      return this.categorias.reduce((total, cat) => total + cat.clients_count, 0);
-    }
+      // Criar novo contato
+      novoContato: {
+        name: '',
+        phone: '',
+        email: ''
+      },
+      criandoContato: false,
+      erroAoCriar: '',
+      sucessoCriar: false
+    };
   },
 
   methods: {
@@ -292,7 +441,7 @@ export default {
           }
         });
 
-        this.categorias = response.data.data || [];
+        this.categorias = response.data.data || response.data || [];
         console.log('✅ Categorias carregadas:', this.categorias.length);
 
       } catch (error) {
@@ -309,6 +458,167 @@ export default {
       }
     },
 
+    // ===== MODAL VISUALIZAR CONTATOS =====
+    async abrirModalVisualizarContatos(categoria) {
+      this.categoriaSelecionada = categoria;
+      this.abaAtiva = 'contatos';
+      this.novoContato = { name: '', phone: '', email: '' };
+      this.erroAoCriar = '';
+      this.sucessoCriar = false;
+      this.filtrosContatos.busca = '';
+      this.paginationContatos.current_page = 1;
+      this.mostrarModalVisualizarContatos = true;
+      await this.carregarContatosDaCategoria();
+    },
+
+    fecharModalVisualizarContatos() {
+      this.mostrarModalVisualizarContatos = false;
+      this.categoriaSelecionada = null;
+      this.contatosDaCategoria = [];
+      clearTimeout(this.searchTimerContatos);
+    },
+
+    async carregarContatosDaCategoria() {
+      if (!this.categoriaSelecionada) return;
+      
+      this.carregandoContatos = true;
+      const token = localStorage.getItem('auth_token');
+
+      try {
+        // Usando o mesmo endpoint da listagem de contatos, mas com filtro de categoria
+        const params = {
+          page: this.paginationContatos.current_page,
+          per_page: this.paginationContatos.per_page,
+          category_id: this.categoriaSelecionada.id
+        };
+
+        if (this.filtrosContatos.busca.trim()) {
+          params.search = this.filtrosContatos.busca.trim();
+        }
+
+        const response = await axios.get('https://api.devsms.online/api/v1/clients', {
+          params,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        // Mesma lógica da listagem principal
+        const data = response.data.data;
+        
+        if (data && data.data) {
+          this.contatosDaCategoria = data.data;
+          this.paginationContatos = {
+            current_page: data.current_page || 1,
+            per_page: data.per_page || 10,
+            total: data.total || 0,
+            last_page: data.last_page || 1,
+            from: data.from || 0,
+            to: data.to || 0
+          };
+        } else if (Array.isArray(response.data)) {
+          this.contatosDaCategoria = response.data;
+          this.paginationContatos.total = response.data.length;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          this.contatosDaCategoria = response.data.data;
+          this.paginationContatos.total = response.data.data.length;
+        }
+
+        console.log('✅ Contatos carregados:', this.contatosDaCategoria.length);
+
+      } catch (error) {
+        console.error('Erro ao carregar contatos da categoria:', error);
+        this.contatosDaCategoria = [];
+        this.paginationContatos.total = 0;
+      } finally {
+        this.carregandoContatos = false;
+      }
+    },
+
+    onSearchContatosInput() {
+      clearTimeout(this.searchTimerContatos);
+      this.searchTimerContatos = setTimeout(() => {
+        this.paginationContatos.current_page = 1;
+        this.carregarContatosDaCategoria();
+      }, 500);
+    },
+
+    limparBuscaContatos() {
+      this.filtrosContatos.busca = '';
+      this.paginationContatos.current_page = 1;
+      this.carregarContatosDaCategoria();
+    },
+
+    mudarPaginaContatos(page) {
+      if (page >= 1 && page <= this.paginationContatos.last_page) {
+        this.paginationContatos.current_page = page;
+        this.carregarContatosDaCategoria();
+      }
+    },
+
+    async criarNovoContato() {
+      if (!this.novoContato.name || !this.novoContato.phone) {
+        this.erroAoCriar = 'Nome e Telefone são obrigatórios';
+        return;
+      }
+
+      if (this.novoContato.phone.length !== 9) {
+        this.erroAoCriar = 'Telefone deve ter 9 dígitos';
+        return;
+      }
+
+      this.criandoContato = true;
+      this.erroAoCriar = '';
+      this.sucessoCriar = false;
+      const token = localStorage.getItem('auth_token');
+
+      try {
+        const payload = {
+          name: this.novoContato.name,
+          phone: this.novoContato.phone,
+          email: this.novoContato.email || null,
+          category_id: this.categoriaSelecionada.id
+        };
+
+        await axios.post(
+          'https://api.devsms.online/api/v1/clients',
+          payload,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        this.sucessoCriar = true;
+        this.novoContato = { name: '', phone: '', email: '' };
+
+        // Recarregar contatos após criar
+        setTimeout(() => {
+          this.carregarContatosDaCategoria();
+          // Voltar para a aba de contatos
+          this.abaAtiva = 'contatos';
+        }, 1500);
+
+      } catch (error) {
+        console.error('❌ Erro ao criar contato:', error);
+        this.erroAoCriar = error.response?.data?.message || 'Erro ao criar contato';
+      } finally {
+        this.criandoContato = false;
+      }
+    },
+
+    formatarTelefoneCriar() {
+      let valor = this.novoContato.phone.replace(/\D/g, '');
+      if (valor.length > 9) {
+        valor = valor.substring(0, 9);
+      }
+      this.novoContato.phone = valor;
+    },
+
+    // ===== MODAL CRIAR/EDITAR =====
     abrirModalCriar() {
       this.modoEdicao = false;
       this.form = {
@@ -364,7 +674,6 @@ export default {
         };
 
         if (this.modoEdicao) {
-          // Editar
           await axios.put(
             `https://api.devsms.online/api/v1/categories/${this.form.id}`,
             payload,
@@ -378,7 +687,6 @@ export default {
           );
           alert('✅ Categoria atualizada com sucesso!');
         } else {
-          // Criar
           await axios.post(
             'https://api.devsms.online/api/v1/categories',
             payload,
@@ -448,10 +756,7 @@ export default {
     },
 
     getCompanyId() {
-      // Você pode obter o company_id do localStorage ou de um store Vuex
-      // Por enquanto, vou retornar 1 como padrão
       const user = JSON.parse(localStorage.getItem('user_data') || '{}');
-     console.log(user);
       return user.company_id || 1;
     },
 
@@ -459,11 +764,27 @@ export default {
       if (!data) return '-';
       const date = new Date(data);
       return date.toLocaleDateString('pt-BR');
+    },
+
+    getInitials(name) {
+      if (!name) return '??';
+      const parts = name.split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    },
+
+    formatPhone(phone) {
+      if (!phone) return '-';
+      return phone.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
     }
   },
 
   mounted() {
     this.fetchCategorias();
+  },
+
+  beforeUnmount() {
+    clearTimeout(this.searchTimerContatos);
   }
 };
 </script>
@@ -490,7 +811,6 @@ export default {
   margin: 0 auto;
 }
 
-/* Header */
 .page-header {
   background: white;
   padding: 2rem;
@@ -517,49 +837,6 @@ export default {
   margin: 0.5rem 0 0 0;
 }
 
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: white;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--gray-900);
-  margin: 0;
-}
-
-.stat-label {
-  color: var(--gray-600);
-  font-size: 0.875rem;
-  margin: 0.25rem 0 0 0;
-}
-
-/* Categories Grid */
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -640,38 +917,9 @@ export default {
   color: var(--primary);
 }
 
-.category-color-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: var(--gray-50);
-  border-radius: 8px;
-}
-
-.color-label {
-  font-size: 0.875rem;
-  color: var(--gray-600);
-  font-weight: 500;
-}
-
-.color-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  border: 2px solid white;
-  box-shadow: 0 0 0 1px var(--gray-300);
-}
-
-.color-code {
-  font-family: monospace;
-  font-size: 0.875rem;
-  color: var(--gray-700);
-}
-
 .category-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   border-top: 1px solid var(--gray-200);
 }
 
@@ -686,15 +934,25 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  font-size: 0.875rem;
 }
 
-.btn-edit {
+.btn-view {
   color: var(--primary);
   border-right: 1px solid var(--gray-200);
 }
 
-.btn-edit:hover {
+.btn-view:hover {
   background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-edit {
+  color: var(--warning);
+  border-right: 1px solid var(--gray-200);
+}
+
+.btn-edit:hover {
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .btn-delete {
@@ -705,7 +963,7 @@ export default {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* Modal */
+/* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -731,21 +989,44 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.modal-content.modal-large {
+  max-width: 700px;
+}
+
 .modal-header {
   padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--gray-200);
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-header-info {
+  display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+.modal-header-color {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
   color: var(--gray-900);
+}
+
+.modal-subtitle {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin: 0.5rem 0 0 0;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.375rem;
 }
 
 .btn-close {
@@ -765,8 +1046,264 @@ export default {
 
 .modal-body {
   padding: 2rem;
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
 }
 
+.modal-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* Abas */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gray-600);
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: -2px;
+}
+
+.tab-button:hover {
+  color: var(--primary);
+}
+
+.tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Search */
+.search-bar {
+  margin-bottom: 1.5rem;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-clear:hover {
+  color: var(--gray-700);
+}
+
+/* Contatos */
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+}
+
+.contact-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9375rem;
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.contact-phone,
+.contact-email {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.contact-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+}
+
+.status-badge.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.status-badge.inactive {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+/* Loading States */
+.loading-state-small {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--gray-50);
+  border-radius: 12px;
+}
+
+.spinner-small {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty States */
+.empty-state-small {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--gray-50);
+  border-radius: 12px;
+}
+
+.empty-state-small i {
+  font-size: 3rem;
+  color: var(--gray-300);
+  margin-bottom: 1rem;
+}
+
+.empty-state-small h4 {
+  font-size: 1.125rem;
+  color: var(--gray-900);
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state-small p {
+  color: var(--gray-600);
+  margin: 0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.btn-pagination {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--gray-200);
+  background: white;
+  border-radius: 8px;
+  color: var(--gray-700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+}
+
+/* Form */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -788,6 +1325,7 @@ export default {
   border-radius: 8px;
   font-size: 0.9375rem;
   transition: all 0.3s;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -796,6 +1334,39 @@ export default {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Alerts */
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Color Picker */
 .color-picker-wrapper {
   display: grid;
   grid-template-columns: 80px 1fr;
@@ -808,6 +1379,7 @@ export default {
   border: 2px solid var(--gray-200);
   border-radius: 8px;
   cursor: pointer;
+  padding: 2px;
 }
 
 .color-text {
@@ -826,65 +1398,18 @@ export default {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.suggested-colors {
-  margin-top: 1.5rem;
-}
-
-.colors-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--gray-700);
-  margin-bottom: 0.75rem;
-}
-
-.colors-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 0.5rem;
-}
-
-.color-option {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 0.875rem;
-}
-
-.color-option:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.color-option.color-selected {
-  border-color: var(--gray-900);
-  transform: scale(1.1);
-}
-
-.modal-footer {
-  padding: 1.5rem 2rem;
-  border-top: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
+/* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 500;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
   border: none;
   transition: all 0.3s;
+  font-size: 0.9375rem;
 }
 
 .btn-primary {
@@ -892,10 +1417,15 @@ export default {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-dark);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-cancel {
@@ -917,9 +1447,18 @@ export default {
   background: #059669;
 }
 
+.btn-ghost {
+  background: white;
+  color: var(--gray-700);
+  border: 2px solid var(--gray-300);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--gray-50);
+}
+
 /* Loading & Empty States */
-.loading-state,
-.empty-state {
+.loading-state {
   text-align: center;
   padding: 4rem 2rem;
   background: white;
@@ -936,8 +1475,11 @@ export default {
   margin: 0 auto 1rem;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
 }
 
 .empty-icon {
@@ -969,17 +1511,6 @@ export default {
   animation: fadeIn 0.5s ease-in;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .categories-page {
@@ -996,8 +1527,27 @@ export default {
     grid-template-columns: 1fr;
   }
 
-  .colors-grid {
-    grid-template-columns: repeat(6, 1fr);
+  .category-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-action {
+    border-right: none !important;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .btn-action:last-child {
+    border-bottom: none;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .tab-button {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

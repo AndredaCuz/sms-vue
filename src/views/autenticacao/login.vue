@@ -177,14 +177,15 @@ export default {
           return;
         }
 
-        console.log('✅ Token:', token.substring(0, 20) + '...');
+        console.log('✅ Token recebido:', token.substring(0, 20) + '...');
 
+        // Limpar dados antigos
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_data');
         localStorage.removeItem('user_type');
 
+        // Salvar token
         localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_type', 'company');
         
         const userData = response.data.user || 
                         response.data.data?.user || 
@@ -192,6 +193,20 @@ export default {
         
         if (userData) {
           localStorage.setItem('user_data', JSON.stringify(userData));
+          
+          // ✅ DETECÇÃO CORRIGIDA DE ADMIN
+          console.log('🔍 Verificando se é admin...');
+          console.log('userData:', userData);
+          
+          const isAdmin = this.checkIfAdmin(userData);
+          
+          console.log('✅ isAdmin resultado:', isAdmin);
+          console.log('📝 Salvando user_type como:', isAdmin ? 'admin' : 'company');
+          
+          localStorage.setItem('user_type', isAdmin ? 'admin' : 'company');
+        } else {
+          console.log('⚠️ Sem user data, salvando como company');
+          localStorage.setItem('user_type', 'company');
         }
 
         if (this.form.remember) {
@@ -207,14 +222,18 @@ export default {
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        console.log('🚀 Redirecionando para /dashboard');
+        // ✅ Redirecionar para o painel correto
+        const userType = localStorage.getItem('user_type');
+        const redirectPath = userType === 'admin' ? '/admin/dashboard' : '/dashboard';
+        
+        console.log('🚀 Redirecionando para:', redirectPath);
 
         this.$nextTick(() => {
-          this.$router.push('/dashboard').then(() => {
+          this.$router.push(redirectPath).then(() => {
             console.log('✅ Redirecionamento concluído');
           }).catch(err => {
             console.error('❌ Erro no redirecionamento:', err);
-            window.location.href = '/#/dashboard';
+            window.location.href = `/#${redirectPath}`;
           });
         });
 
@@ -251,6 +270,46 @@ export default {
         
         this.isLoading = false;
       }
+    },
+
+    // ✅ NOVA FUNÇÃO: Verificar se é admin
+    checkIfAdmin(userData) {
+      if (!userData) {
+        console.log('❌ Sem userData');
+        return false;
+      }
+
+      // Verificar múltiplos campos possíveis
+      const possibleAdminFields = [
+        userData.role,
+        userData.tipo,
+        userData.type,
+        userData.user_type,
+        userData.level,
+        userData.is_admin,
+        userData.admin,
+        userData.isAdmin,
+        userData.permission
+      ];
+
+      console.log('🔍 Campos verificados:', possibleAdminFields);
+
+      for (let field of possibleAdminFields) {
+        if (field === 'admin' || 
+            field === 'administrator' || 
+            field === 'Admin' ||
+            field === 'super_admin' ||
+            field === 'Super Admin' ||
+            field === true ||
+            field === 1 ||
+            field === '1') {
+          console.log('✅ Encontrado campo admin:', field);
+          return true;
+        }
+      }
+
+      console.log('❌ Nenhum campo admin encontrado');
+      return false;
     }
   },
   mounted() {

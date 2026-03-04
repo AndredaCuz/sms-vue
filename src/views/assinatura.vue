@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
   
   <div class="page-container fade-in">
     
@@ -564,16 +564,19 @@
     </Transition>
 
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../components/navegacao.vue';
+
+
+import AppLayout from '../components/AppLayout.vue';
 
 export default {
   name: 'SubscriptionManagement',
   components: {
-    navegacao
+   AppLayout
   },
   data() {
     return {
@@ -1061,7 +1064,7 @@ export default {
 }
 
 .subscription-card-premium {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #130703 0%, #e6423c 100%);
   padding: 2rem;
   border-radius: 20px;
   margin-bottom: 2rem;

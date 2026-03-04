@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+<AppLayout>
 
   <div class="fade-in">
     <!-- Header -->
@@ -123,7 +123,7 @@
                     <div class="empty-state">
                       <i class="fas fa-inbox"></i>
                       <p>Nenhum número na blacklist</p>
-                      <router-link to="/criar_blacklist" class="btn btn-primary">
+                      <router-link to="/criar_black" class="btn btn-primary">
                         Adicionar primeiro número
                       </router-link>
                     </div>
@@ -204,16 +204,18 @@
       </div>
     </div>
   </div>
+</AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'Blacklist',
   components: {
-    navegacao
+  AppLayout
   },
   data() {
     return {

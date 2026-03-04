@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+ <AppLayout>
 
   <div class="planos-admin-page fade-in">
     <!-- Page Header -->
@@ -376,16 +376,18 @@
       </div>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'ListaPlanosAdmin',
   components: {
-    navegacao
+    AppLayout
   },
   data() {
     return {

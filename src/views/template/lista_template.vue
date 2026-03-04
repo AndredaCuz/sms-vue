@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+ <AppLayout>
   
   <div class="page-container fade-in">
     
@@ -255,16 +255,18 @@
     </Transition>
 
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'TemplatesList',
   components: {
-    navegacao
+    AppLayout
   },
   data() {
     return {

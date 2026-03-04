@@ -10,7 +10,7 @@ import Meucontatos from '../views/clientes/meucontatos.vue'
 import Criarcontato from '../views/clientes/criarcontato.vue'
 import Atualizar from '../views/clientes/Atualizar.vue'
 import Enviarsms from '../views/Enviarsms.vue'
-import Admpainel from '../views/empresa_adm/admpainel.vue'
+import AdminDashboard from '../views/empresa_adm/admpainel.vue'
 import Credito from '../views/assinatura.vue'
 import Gerir from '../views/adm/Gerir.vue'
 import Historicosms from '../views/dashboard/historicosms.vue'
@@ -30,8 +30,9 @@ import Listar_voucher from '../views/empresa_adm/Listar_voucher.vue'
 import Criar_voucher from '../views/empresa_adm/Criar_voucher.vue'
 import Hist_consumo from '../views/dashboard/Hist_consumo.vue'
 import Resu_camapanha from '../views/dashboard/Resu_camapanha.vue'
+import Perfil from '../views/autenticacao/perfil.vue'
 
-// Sistema de autenticação
+// ✅ SISTEMA DE AUTENTICAÇÃO CORRIGIDO
 const auth = {
   isAuthenticated() {
     const token = localStorage.getItem('auth_token')
@@ -51,33 +52,59 @@ const auth = {
   },
   
   isAdmin() {
+    // ✅ VERIFICAÇÃO 1: user_type no localStorage (método mais confiável)
     const userType = localStorage.getItem('user_type')
     console.log('🔍 user_type no localStorage:', userType)
     
     if (userType === 'admin') {
-      console.log('✅ É admin pelo user_type')
+      console.log('✅ É ADMIN - Confirmado pelo user_type')
       return true
     }
     
+    // ✅ VERIFICAÇÃO 2: Verificar token JWT (método alternativo)
+    const token = localStorage.getItem('auth_token')
+    if (token && token.includes('admin')) {
+      console.log('✅ É ADMIN - Detectado no token')
+      return true
+    }
+    
+    // ✅ VERIFICAÇÃO 3: Verificar dados do usuário
     const user = this.getUser()
     if (!user) {
       console.log('❌ Sem dados de usuário')
       return false
     }
     
-    const userRole = user.role || user.tipo || user.user_type || user.level || user.type || user.is_admin
-    console.log('🔍 userRole nos dados:', userRole)
+    // Verificar múltiplos campos que podem conter o role
+    const possibleAdminFields = [
+      user.role,
+      user.tipo,
+      user.user_type,
+      user.level,
+      user.type,
+      user.is_admin,
+      user.admin,
+      user.isAdmin,
+      user.permission
+    ]
     
-    const isAdminRole = userRole === 'admin' || 
-                        userRole === 'administrator' || 
-                        userRole === 'Admin' ||
-                        userRole === 'super_admin' ||
-                        userRole === 'Super Admin' ||
-                        userRole === true ||
-                        userRole === 1
+    for (let field of possibleAdminFields) {
+      if (field === 'admin' || 
+          field === 'administrator' || 
+          field === 'Admin' ||
+          field === 'super_admin' ||
+          field === 'Super Admin' ||
+          field === true ||
+          field === 1 ||
+          field === '1') {
+        console.log('✅ É ADMIN - Detectado em:', field)
+        return true
+      }
+    }
     
-    console.log('🔍 É admin pelo role:', isAdminRole)
-    return isAdminRole
+    console.log('❌ NÃO É ADMIN')
+    console.log('User data:', user)
+    return false
   },
   
   logout() {
@@ -86,6 +113,7 @@ const auth = {
     localStorage.removeItem('user_data')
     localStorage.removeItem('user_type')
     localStorage.removeItem('remember_email')
+    localStorage.removeItem('sidebar_collapsed')
     
     window.dispatchEvent(new CustomEvent('auth-changed'))
   }
@@ -93,8 +121,9 @@ const auth = {
 
 window.auth = auth
 
+// ✅ ROTAS DEFINIDAS CORRETAMENTE
 const routes = [
-  // Rotas Públicas
+  // ROTAS PÚBLICAS
   { 
     path: '/', 
     name: 'Home', 
@@ -109,121 +138,140 @@ const routes = [
     path: '/login', 
     name: 'Login', 
     component: Login,
-    // 🔧 REMOVIDO: requiresGuest para permitir acesso sempre
     meta: { requiresAuth: false }
   },
   { 
     path: '/register', 
     name: 'Register', 
     component: Register,
-    // 🔧 REMOVIDO: requiresGuest para permitir acesso sempre
     meta: { requiresAuth: false }
   },
   
-  // ROTAS DE EMPRESA
+  // ═══════════════════════════════════════
+  // ROTAS DE EMPRESA (USUÁRIO COMUM)
+  // ═══════════════════════════════════════
   { 
     path: '/dashboard', 
     name: 'Dashboard', 
     component: Dashboard,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/perfil', 
+    name: 'Perfil', 
+    component: Perfil,
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
     path: '/meucontatos', 
     name: 'Meucontatos', 
     component: Meucontatos,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
     path: '/criarcontato', 
     name: 'Criarcontato', 
     component: Criarcontato,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
     path: '/atualizar/:id', 
     name: 'Atualizar', 
     component: Atualizar,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
     path: '/enviarsms', 
     name: 'Enviarsms', 
     component: Enviarsms,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
-    path: '/credito', 
-    name: 'Credito', 
-    component: Credito,
-    meta: { requiresAuth: true }
-  },
-  { 
-    path: '/historicosms', 
-    name: 'Historicosms', 
-    component: Historicosms,
-    meta: { requiresAuth: true }
-  },
-    { 
-    path: '/hist_consumo', 
-    name: 'Hist_consumo', 
-    component: Hist_consumo,
-    meta: { requiresAuth: true }
-  },
-  { 
-    path: '/resu_campanha', 
-    name: 'Resu_campanha', 
-    component: Resu_camapanha,
-    meta: { requiresAuth: true }
-  },
-  { 
-    path: '/verplanos', 
-    name: 'Verplanos', 
-    component: Verplanos,
-    meta: { requiresAuth: true }
-  },
-  { 
-    path: '/lista_template', 
-    name: 'Lista_template', 
-    component: Lista_template,
-    meta: { requiresAuth: true }
-  },
-  { 
-    path: '/criar', 
-    name: 'Criar', 
-    component: Criar,
-    meta: { requiresAuth: true }
-  },
-
-   { 
-    path: '/lista_black', 
-    name: 'Lista_black', 
-    component: Lista_black,
-    meta: { requiresAuth: true }
-  },
-    { 
-    path: '/criar_black', 
-    name: 'Criar_black', 
-    component: Criar_black,
-    meta: { requiresAuth: true }
+    path: '/crear_campanhas', 
+    name: 'Criar_campanhas', 
+    component: Criar_campanhas,
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
     path: '/lista_campanhas', 
     name: 'Lista_campanhas', 
     component: Listar_campanhas,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   { 
-    path: '/criar_campanhas', 
-    name: 'Criar_campanhas', 
-    component: Criar_campanhas,
-    meta: { requiresAuth: true }
+    path: '/credito', 
+    name: 'Credito', 
+    component: Credito,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/historicosms', 
+    name: 'Historicosms', 
+    component: Historicosms,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/hist_consumo', 
+    name: 'Hist_consumo', 
+    component: Hist_consumo,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/resu_campanha', 
+    name: 'Resu_campanha', 
+    component: Resu_camapanha,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/verplanos', 
+    name: 'Verplanos', 
+    component: Verplanos,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/lista_template', 
+    name: 'Lista_template', 
+    component: Lista_template,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/criar', 
+    name: 'Criar', 
+    component: Criar,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/lista_black', 
+    name: 'Lista_black', 
+    component: Lista_black,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/criar_black', 
+    name: 'Criar_black', 
+    component: Criar_black,
+    meta: { requiresAuth: true, requiresAdmin: false }
+  },
+  { 
+    path: '/categorias', 
+    name: 'Categorias', 
+    component: Categorias,
+    meta: { requiresAuth: true, requiresAdmin: false }
   },
   
-  // ROTAS DE ADMIN
+  // ═══════════════════════════════════════
+  // ROTAS DE ADMIN (APENAS PARA ADMINISTRADORES)
+  // ═══════════════════════════════════════
+  { 
+    path: '/admin/dashboard', 
+    name: 'AdminDashboard', 
+    component: AdminDashboard,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
   { 
     path: '/admpainel', 
     name: 'Admpainel', 
-    component: Admpainel,
+    component: AdminDashboard,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   { 
@@ -231,12 +279,6 @@ const routes = [
     name: 'Gerir', 
     component: Gerir,
     meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  { 
-    path: '/categorias', 
-    name: 'Categorias', 
-    component: Categorias,
-    meta: { requiresAuth: true }
   },
   { 
     path: '/lista_empresa', 
@@ -262,7 +304,6 @@ const routes = [
     component: Atualizar_planos,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
-
   { 
     path: '/listar_voucher', 
     name: 'Listar_voucher', 
@@ -276,13 +317,15 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   
-  // Rota 404 Catch-All
+  // ═══════════════════════════════════════
+  // ROTA 404 CATCH-ALL
+  // ═══════════════════════════════════════
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: to => {
       if (auth.isAuthenticated()) {
-        return auth.isAdmin() ? '/admpainel' : '/dashboard'
+        return auth.isAdmin() ? '/admin/dashboard' : '/dashboard'
       }
       return '/login'
     }
@@ -301,7 +344,7 @@ const router = createRouter({
   }
 })
 
-// 🔧 GUARD DE NAVEGAÇÃO SIMPLIFICADO E CORRIGIDO
+// ✅ GUARD DE NAVEGAÇÃO CORRIGIDO
 router.beforeEach((to, from, next) => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('🧭 NAVEGAÇÃO')
@@ -315,21 +358,22 @@ router.beforeEach((to, from, next) => {
   console.log('📊 Status:')
   console.log('- Autenticado:', isAuthenticated)
   console.log('- É Admin:', isAdmin)
+  console.log('- user_type:', localStorage.getItem('user_type'))
   
-  // 1️⃣ Rotas públicas (Home) - sempre permitir
+  // 1️⃣ Rotas públicas - sempre permitir
   if (to.meta.public) {
     console.log('✅ ROTA PÚBLICA - Permitido')
     return next()
   }
   
-  // 2️⃣ Rotas que NÃO requerem autenticação (Login, Register)
+  // 2️⃣ Rotas que NÃO requerem autenticação
   if (to.meta.requiresAuth === false) {
     console.log('✅ ROTA SEM AUTENTICAÇÃO - Permitido')
     return next()
   }
   
   // 3️⃣ Rotas que REQUEREM autenticação
-  if (to.meta.requiresAuth) {
+  if (to.meta.requiresAuth === true) {
     // Se não estiver autenticado, redireciona para login
     if (!isAuthenticated) {
       console.log('⛔ NÃO AUTENTICADO - Redirecionando para /login')
@@ -340,13 +384,21 @@ router.beforeEach((to, from, next) => {
       })
     }
     
-    // Se a rota requer admin e não é admin, redireciona para dashboard
-    if (to.meta.requiresAdmin && !isAdmin) {
-      console.log('⛔ NÃO É ADMIN - Redirecionando para /dashboard')
+    // Se a rota requer admin e NÃO é admin
+    if (to.meta.requiresAdmin === true && !isAdmin) {
+      console.log('⛔ ROTA REQUER ADMIN MAS USUÁRIO NÃO É ADMIN')
+      console.log('Redirecionando para /dashboard')
       return next({ path: '/dashboard', replace: true })
     }
     
-    console.log('✅ AUTENTICADO - Permitido')
+    // Se a rota requer que NÃO seja admin mas o usuário é admin
+    if (to.meta.requiresAdmin === false && isAdmin) {
+      console.log('⛔ ROTA É PARA USUÁRIO COMUM MAS VOCÊ É ADMIN')
+      console.log('Redirecionando para /admin/dashboard')
+      return next({ path: '/admin/dashboard', replace: true })
+    }
+    
+    console.log('✅ AUTENTICADO E AUTORIZADO - Permitido')
     return next()
   }
   

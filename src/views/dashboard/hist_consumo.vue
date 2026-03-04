@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
 
   <div class="fade-in">
     <!-- Page Header -->
@@ -456,17 +456,21 @@
       </div>
     </transition>
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
 import Chart from 'chart.js/auto';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'ConsumptionReport',
   components: {
-    navegacao
+    AppLayout
+
   },
   data() {
     const today = new Date();

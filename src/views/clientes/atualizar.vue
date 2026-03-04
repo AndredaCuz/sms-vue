@@ -1,6 +1,6 @@
 <template>
 
-  <navegacao/>
+<AppLayout>
   <div class="editar-contato-page">
     <div class="page-header">
       <div class="header-content">
@@ -189,18 +189,20 @@
       </form>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
 
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'EditarContato',
 
   components:{
-    navegacao
+    AppLayout
   },
   data() {
     return {

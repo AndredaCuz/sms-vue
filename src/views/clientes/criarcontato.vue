@@ -1,5 +1,5 @@
 <template>
-  <navegacao/>
+  <AppLayout>
 
   <div class="contacts-page fade-in">
     <!-- Header Aprimorado -->
@@ -351,17 +351,19 @@
       </div>
     </div>
   </div>
+</AppLayout>
 </template>
 
 <script>
 import axios from 'axios';
-import navegacao from '../../components/navegacao.vue';
+
+import AppLayout from '../../components/AppLayout.vue';
 
 export default {
   name: 'CriarContato',
 
   components: {
-    navegacao,
+    AppLayout
   },
 
   data() {
